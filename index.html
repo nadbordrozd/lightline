@@ -45,9 +45,9 @@
           <button class="btn btn-primary btn-big" data-go="local">Local match</button>
           <button class="btn btn-big" data-go="online">Online match</button>
           <button class="btn btn-ghost" data-go="help">How to play</button>
+          <button class="btn btn-ghost" data-go="about">About</button>
         </nav>
       </div>
-      <footer class="menu-foot">Up to 8 players · born as a hidden easter egg in <a href="https://turing-game.pl/" target="_blank" rel="noopener">Turing Game</a></footer>
     </section>
 
     <!-- Local setup -->
@@ -66,6 +66,8 @@
           <div>
             <h3>Game mode</h3>
             <div id="local-modes" class="mode-list"></div>
+            <h3>Line speed</h3>
+            <div class="speed-ctl"></div>
           </div>
         </div>
         <div class="panel-foot">
@@ -132,6 +134,10 @@
             <div id="locals-keys" class="locals-keys"></div>
             <h3>Game mode</h3>
             <div id="lobby-modes" class="mode-list compact"></div>
+            <div class="host-only">
+              <h3>Line speed</h3>
+              <div class="speed-ctl"></div>
+            </div>
           </div>
         </div>
         <div class="panel-foot">
@@ -172,10 +178,31 @@
       </div>
     </section>
 
+    <!-- About -->
+    <section id="screen-about" class="screen">
+      <div class="panel panel-narrow about">
+        <div class="panel-head">
+          <button class="back" data-go="menu" aria-label="Back">‹</button>
+          <h2>About</h2>
+        </div>
+        <p>Lightline is a light-cycle game for up to 8 players: on one keyboard, against bots, or online with friends. Steer with two keys, leave a trail and outlast everyone else.</p>
+        <p>Made by Nadbor Drozd.</p>
+        <ul class="about-links">
+          <li><span>Email</span><a href="mailto:nadbordrozd@gmail.com">nadbordrozd@gmail.com</a></li>
+          <li><span>More projects</span><a href="https://nadbordrozd.github.io/projects/" target="_blank" rel="noopener">nadbordrozd.github.io/projects</a></li>
+          <li><span>Source code</span><a href="https://github.com/nadbordrozd/lightline" target="_blank" rel="noopener">github.com/nadbordrozd/lightline</a></li>
+        </ul>
+      </div>
+    </section>
+
     <!-- Pause menu -->
     <section id="screen-pause" class="screen screen-pause">
       <div class="panel panel-narrow pause-panel">
         <h2 id="pause-title">Paused</h2>
+        <div id="pause-speed" class="pause-speed">
+          <h3>Line speed</h3>
+          <div class="speed-ctl"></div>
+        </div>
         <div id="pause-buttons" class="pause-buttons"></div>
       </div>
     </section>

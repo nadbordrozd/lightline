@@ -40,6 +40,39 @@ export const colorVars = (ci) => {
   return `--h:${p.hue};--s:${p.sat}%;--l:${p.light}%`;
 };
 
+// ------------------------------------------------------------------ line speed
+// A multiplier on how far every line moves per tick (1 = the original speed). It applies to new games
+// and, from the pause menu, to the game in progress. Online, only the host's setting counts.
+export const SPEED_MIN = 0.4;
+export const SPEED_MAX = 2.5;
+export const SPEED_DEFAULT = 1;
+const clampSpeed = (v) => Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round((+v || SPEED_DEFAULT) * 20) / 20));
+let speedMul = clampSpeed(store.get('speed', SPEED_DEFAULT));
+export const getSpeed = () => speedMul;
+function setSpeed(v) {
+  speedMul = clampSpeed(v);
+  store.set('speed', speedMul);
+  if (session?.game && !session.demo) session.game.speedMul = speedMul;
+  syncSpeedControls();
+}
+function syncSpeedControls() {
+  for (const el of $$('.speed-ctl')) {
+    const input = $('input', el);
+    if (+input.value !== speedMul) input.value = speedMul;
+    $('.speed-val', el).textContent = speedMul.toFixed(2) + '×';
+    $('.speed-reset', el).disabled = speedMul === SPEED_DEFAULT;
+  }
+}
+for (const el of $$('.speed-ctl')) {
+  el.innerHTML = `
+    <input type="range" min="${SPEED_MIN}" max="${SPEED_MAX}" step="0.05" aria-label="Line speed">
+    <span class="speed-val"></span>
+    <button class="btn btn-small speed-reset" title="Back to the original speed">Reset</button>`;
+  $('input', el).oninput = (e) => setSpeed(e.target.value);
+  $('.speed-reset', el).onclick = () => setSpeed(SPEED_DEFAULT);
+}
+syncSpeedControls();
+
 // ------------------------------------------------------------------ main loop
 // The simulation is stepped from a Web Worker timer, because browsers throttle main-thread
 // timers (and pause requestAnimationFrame) in background tabs. Rendering uses requestAnimationFrame.
@@ -226,7 +259,7 @@ class LocalSession extends Session {
     this.slots = slots;
     this.mode = mode;
     const roster = slots.map((s, i) => ({ id: 's' + i, name: COLORS[s.color].name, color: s.color, kind: s.kind }));
-    this.game = new Game(roster, mode);
+    this.game = new Game(roster, mode, { speedMul: demo ? SPEED_DEFAULT : speedMul });
     slots.forEach((s, i) => {
       if (s.kind !== 'human') return;
       this.keymap.set(s.keys[0], { i, d: -1 });
@@ -285,6 +318,7 @@ export function openPause() {
   if (!session || session.demo) return;
   if (session instanceof LocalSession) session.paused = true;
   $('#pause-title').textContent = session instanceof LocalSession ? 'Paused' : 'Menu';
+  $('#pause-speed').hidden = !session.game; // guests can't change the host's speed
   const box = $('#pause-buttons');
   box.innerHTML = '';
   session.pauseButtons().forEach(([label, fn], i) => {
@@ -466,7 +500,7 @@ window.addEventListener('keydown', (e) => {
     if (GAME_KEYS.has(e.code)) e.preventDefault();
   } else if (scr === 'pause' && e.code === 'Escape') {
     session?.pauseButtons()[0]?.[1]();
-  } else if (e.code === 'Escape' && ['local', 'help', 'online'].includes(scr)) {
+  } else if (e.code === 'Escape' && ['local', 'help', 'about', 'online'].includes(scr)) {
     showScreen('menu');
   }
 });
@@ -482,6 +516,7 @@ $$('[data-go]').forEach((b) => {
     const go = b.dataset.go;
     if (go === 'local') openLocalSetup();
     else if (go === 'help') showScreen('help');
+    else if (go === 'about') showScreen('about');
     else if (go === 'online') openOnline();
     else showScreen(go);
   });

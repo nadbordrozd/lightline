@@ -48,6 +48,7 @@ function openArea(g, sx, sy, limit) {
 export function cpuThink(g, p) {
   if (p.god > 0) return; // invincible: just cruise
   const easy = p.kind === 'easy';
+  const v = Math.ceil(p.speed * (g.speedMul ?? 1)); // cells per tick, rounded up
 
   if (easy) {
     p.ai.next = (p.ai.next ?? 100) - 1;
@@ -56,7 +57,7 @@ export function cpuThink(g, p) {
       const first = Math.random() < 0.5 ? -1 : 1;
       for (const d of [first, -first]) {
         const [dx, dy] = rot(p.dx, p.dy, d);
-        const need = p.speed * 2 + 2;
+        const need = v * 2 + 2;
         if (freeRay(g, p.x, p.y, dx, dy, need + 1) > need) {
           g.turn(p, d);
           break;
@@ -65,7 +66,7 @@ export function cpuThink(g, p) {
     }
   }
 
-  const look = p.speed * 3 + (easy ? 0 : 4);
+  const look = v * 3 + (easy ? 0 : 4);
   const ahead = freeRay(g, p.x, p.y, p.dx, p.dy, look + 1);
   if (ahead > look) return;
 

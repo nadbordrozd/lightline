@@ -26,8 +26,10 @@ const isCpu = (p) => p.kind === 'easy' || p.kind === 'hard';
 
 export class Game {
   // roster: [{ id, name, color, kind: 'human' | 'easy' | 'hard', owner? }]
-  constructor(roster, mode = 'shuffle') {
+  // speedMul scales how many cells every line moves per tick (1 = the original 3 cells/tick).
+  constructor(roster, mode = 'shuffle', { speedMul = 1 } = {}) {
     this.mode = MODES[mode] ? mode : 'shuffle';
+    this.speedMul = speedMul;
     this.grid = new Int16Array(W * H); // 0 empty, -1 trail/wall, >0 bonus id
     this.players = [];
     this.bonuses = new Map();
@@ -46,7 +48,7 @@ export class Game {
       ...r,
       index: i,
       wins: old.get(r.id)?.wins ?? 0,
-      alive: false, x: 0, y: 0, dx: 1, dy: 0, speed: BASE_SPEED, god: 0, queue: [], ai: {}, run: null,
+      alive: false, x: 0, y: 0, dx: 1, dy: 0, speed: BASE_SPEED, acc: 0, god: 0, queue: [], ai: {}, run: null,
     }));
   }
 
@@ -76,7 +78,7 @@ export class Game {
       } while (++tries < 300 && spawns.some((s) => Math.hypot(s.x - x, s.y - y) < 110));
       spawns.push({ x, y });
       const [dx, dy] = [[1, 0], [-1, 0], [0, 1], [0, -1]][rndInt(0, 3)];
-      Object.assign(p, { x, y, dx, dy, alive: true, speed: BASE_SPEED, god: 0, queue: [], ai: {}, run: null });
+      Object.assign(p, { x, y, dx, dy, alive: true, speed: BASE_SPEED, acc: 0, god: 0, queue: [], ai: {}, run: null });
       this.grid[y * W + x] = -1;
     }
 
@@ -184,7 +186,11 @@ export class Game {
       if (isCpu(p)) cpuThink(this, p);
       else if (p.queue.length) this.turn(p, p.queue.shift());
       this.openRun(p);
-      maxSteps = Math.max(maxSteps, p.speed);
+      // Fractional speeds carry over between ticks, so a 1.5x line moves 4 then 5 cells, and so on.
+      p.acc += p.speed * this.speedMul;
+      p.steps = Math.floor(p.acc);
+      p.acc -= p.steps;
+      maxSteps = Math.max(maxSteps, p.steps);
     }
 
     // Everyone advances one cell at a time, interleaved, so fast and slow players are treated fairly
@@ -192,7 +198,7 @@ export class Game {
     for (let s = 0; s < maxSteps; s++) {
       const targets = [];
       for (const p of alive) {
-        if (!p.alive || p.speed <= s) continue;
+        if (!p.alive || p.steps <= s) continue;
         const nx = p.x + p.dx;
         const ny = p.y + p.dy;
         if (nx < 0 || nx >= W || ny < 0 || ny >= H) {
@@ -327,7 +333,7 @@ export class Game {
   }
 
   bomb(p, fr) {
-    const r = 22;
+    const r = 29; // radius of the hole a bomb clears
     const cx = p.x;
     const cy = p.y;
     this.destroyBonusesIn(cx - r, cy - r, 2 * r + 1, 2 * r + 1, fr);
@@ -342,7 +348,7 @@ export class Game {
   }
 
   wall(p, fr) {
-    const R = 50;
+    const R = 60; // half-length of a dropped wall
     const px = Math.abs(p.dy);
     const py = Math.abs(p.dx);
     const x0 = Math.max(0, p.x - R * px);

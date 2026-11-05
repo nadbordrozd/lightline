@@ -91,3 +91,16 @@ test('dropping a player mid-round ends it for the other', () => {
   assert.ok(end);
   assert.equal(end.w, 1);
 });
+
+test('the speed multiplier scales distance, including fractional speeds', () => {
+  const humans = [0, 1].map((i) => ({ id: 'h' + i, name: 'H' + i, color: i, kind: 'human' }));
+  for (const mul of [0.5, 1, 1.5, 2.2]) {
+    const g = new Game(humans, 'classic', { speedMul: mul });
+    g.startRound();
+    for (const [i, p] of g.players.entries()) Object.assign(p, { x: 400, y: 200 + 300 * i, dx: 1, dy: 0 });
+    for (let t = 0; t < COUNTDOWN_TICKS; t++) g.tick();
+    const ticks = 20;
+    for (let t = 0; t < ticks; t++) g.tick();
+    assert.equal(g.players[0].x - 400, Math.floor(3 * mul * ticks + 1e-9), `speed ${mul}`);
+  }
+});
