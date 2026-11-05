@@ -268,7 +268,7 @@ class LocalSession extends Session {
   }
 }
 
-function startDemo() {
+export function startDemo() {
   const kinds = ['hard', 'easy', 'hard', 'easy', 'hard'];
   const slots = kinds.map((kind, i) => ({ color: [4, 6, 1, 3, 0][i], kind, keys: [] }));
   setSession(new LocalSession(slots, 'shuffle', { demo: true }));
@@ -512,4 +512,7 @@ async function openOnline(code) {
 renderHelp();
 toMenu();
 const roomParam = new URLSearchParams(location.search).get('room');
-if (roomParam) openOnline(roomParam);
+if (roomParam) {
+  history.replaceState(null, '', location.pathname);
+  openOnline(roomParam);
+}

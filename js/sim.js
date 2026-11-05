@@ -91,7 +91,7 @@ export class Game {
       round: this.round,
       level: this.level,
       mode: this.mode,
-      players: this.players.map((p) => ({ id: p.id, name: p.name, color: p.color, kind: p.kind, owner: p.owner, wins: p.wins })),
+      players: this.players.map((p) => ({ id: p.id, name: p.name, color: p.color, kind: p.kind, owner: p.owner, li: p.li, wins: p.wins })),
       bonuses: [...this.bonuses.values()].map((b) => [b.id, b.type, b.x, b.y, b.v]),
       h: this.heads(),
     };
