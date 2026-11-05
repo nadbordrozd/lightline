@@ -1,7 +1,7 @@
 // The game simulation. Pure logic, no DOM: the same code runs locally and on an online host.
 // Each tick() returns a compact "frame" describing what changed; renderers (local or remote) draw from frames only.
 import {
-  W, H, TICK_HZ, BASE_SPEED, MAX_SPEED, GOD_TICKS, SWAP_GRACE_TICKS, COUNTDOWN_TICKS, BONUS_SCALE,
+  W, H, TICK_HZ, BASE_SPEED, CELLS_PER_LEVEL, MAX_SPEED, GOD_TICKS, SWAP_GRACE_TICKS, COUNTDOWN_TICKS, BONUS_SCALE,
 } from './constants.js';
 import { artFor } from './art.js';
 import { rot, freeRay, cpuThink, cpuChooseStart } from './ai.js';
@@ -26,7 +26,7 @@ const isCpu = (p) => p.kind === 'easy' || p.kind === 'hard';
 
 export class Game {
   // roster: [{ id, name, color, kind: 'human' | 'easy' | 'hard', owner? }]
-  // speedMul scales how many cells every line moves per tick (1 = the original 3 cells/tick).
+  // speedMul is the line speed setting: it scales how far every line moves per tick (1 = 100%).
   constructor(roster, mode = 'shuffle', { speedMul = 1 } = {}) {
     this.mode = MODES[mode] ? mode : 'shuffle';
     this.speedMul = speedMul;
@@ -97,6 +97,11 @@ export class Game {
       bonuses: [...this.bonuses.values()].map((b) => [b.id, b.type, b.x, b.y, b.v]),
       h: this.heads(),
     };
+  }
+
+  // How many cells a player moves per tick (fractional; the remainder carries over to the next tick).
+  cellsPerTick(p) {
+    return p.speed * CELLS_PER_LEVEL * this.speedMul;
   }
 
   heads() {
@@ -187,7 +192,7 @@ export class Game {
       else if (p.queue.length) this.turn(p, p.queue.shift());
       this.openRun(p);
       // Fractional speeds carry over between ticks, so a 1.5x line moves 4 then 5 cells, and so on.
-      p.acc += p.speed * this.speedMul;
+      p.acc += this.cellsPerTick(p);
       p.steps = Math.floor(p.acc);
       p.acc -= p.steps;
       maxSteps = Math.max(maxSteps, p.steps);
@@ -333,7 +338,7 @@ export class Game {
   }
 
   bomb(p, fr) {
-    const r = 29; // radius of the hole a bomb clears
+    const r = 38; // radius of the hole a bomb clears
     const cx = p.x;
     const cy = p.y;
     this.destroyBonusesIn(cx - r, cy - r, 2 * r + 1, 2 * r + 1, fr);
@@ -348,7 +353,7 @@ export class Game {
   }
 
   wall(p, fr) {
-    const R = 60; // half-length of a dropped wall
+    const R = 72; // half-length of a dropped wall
     const px = Math.abs(p.dy);
     const py = Math.abs(p.dx);
     const x0 = Math.max(0, p.x - R * px);

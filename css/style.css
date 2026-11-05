@@ -156,7 +156,7 @@ kbd {
 /* ---------------------------------------------------------------- speed slider */
 .speed-ctl { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .speed-ctl input { flex: 1; min-width: 0; accent-color: var(--accent); height: 28px; cursor: pointer; }
-.speed-val { min-width: 54px; text-align: right; font-family: var(--font-display); font-weight: 700; color: var(--accent); }
+.speed-val { min-width: 64px; text-align: right; font-family: var(--font-display); font-weight: 700; color: var(--accent); }
 .speed-reset:disabled { opacity: 0.35; cursor: default; }
 .pause-speed { text-align: left; margin: 4px 0 14px; }
 .pause-speed[hidden] { display: none; }

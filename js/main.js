@@ -41,17 +41,17 @@ export const colorVars = (ci) => {
 };
 
 // ------------------------------------------------------------------ line speed
-// A multiplier on how far every line moves per tick (1 = the original speed). It applies to new games
+// The line speed setting, as a fraction of the standard speed (1 = 100%). It applies to new games
 // and, from the pause menu, to the game in progress. Online, only the host's setting counts.
-export const SPEED_MIN = 0.4;
+export const SPEED_MIN = 0.25;
 export const SPEED_MAX = 2.5;
 export const SPEED_DEFAULT = 1;
 const clampSpeed = (v) => Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round((+v || SPEED_DEFAULT) * 20) / 20));
-let speedMul = clampSpeed(store.get('speed', SPEED_DEFAULT));
+let speedMul = clampSpeed(store.get('lineSpeed', SPEED_DEFAULT));
 export const getSpeed = () => speedMul;
 function setSpeed(v) {
   speedMul = clampSpeed(v);
-  store.set('speed', speedMul);
+  store.set('lineSpeed', speedMul);
   if (session?.game && !session.demo) session.game.speedMul = speedMul;
   syncSpeedControls();
 }
@@ -59,7 +59,7 @@ function syncSpeedControls() {
   for (const el of $$('.speed-ctl')) {
     const input = $('input', el);
     if (+input.value !== speedMul) input.value = speedMul;
-    $('.speed-val', el).textContent = speedMul.toFixed(2) + '×';
+    $('.speed-val', el).textContent = Math.round(speedMul * 100) + '%';
     $('.speed-reset', el).disabled = speedMul === SPEED_DEFAULT;
   }
 }
@@ -67,7 +67,7 @@ for (const el of $$('.speed-ctl')) {
   el.innerHTML = `
     <input type="range" min="${SPEED_MIN}" max="${SPEED_MAX}" step="0.05" aria-label="Line speed">
     <span class="speed-val"></span>
-    <button class="btn btn-small speed-reset" title="Back to the original speed">Reset</button>`;
+    <button class="btn btn-small speed-reset" title="Back to the standard speed (100%)">Reset</button>`;
   $('input', el).oninput = (e) => setSpeed(e.target.value);
   $('.speed-reset', el).onclick = () => setSpeed(SPEED_DEFAULT);
 }

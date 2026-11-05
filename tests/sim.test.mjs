@@ -94,13 +94,37 @@ test('dropping a player mid-round ends it for the other', () => {
 
 test('the speed multiplier scales distance, including fractional speeds', () => {
   const humans = [0, 1].map((i) => ({ id: 'h' + i, name: 'H' + i, color: i, kind: 'human' }));
-  for (const mul of [0.5, 1, 1.5, 2.2]) {
+  for (const mul of [0.25, 0.5, 1, 1.5, 2.5]) {
     const g = new Game(humans, 'classic', { speedMul: mul });
     g.startRound();
     for (const [i, p] of g.players.entries()) Object.assign(p, { x: 400, y: 200 + 300 * i, dx: 1, dy: 0 });
     for (let t = 0; t < COUNTDOWN_TICKS; t++) g.tick();
     const ticks = 20;
     for (let t = 0; t < ticks; t++) g.tick();
-    assert.equal(g.players[0].x - 400, Math.floor(3 * mul * ticks + 1e-9), `speed ${mul}`);
+    assert.equal(g.players[0].x - 400, Math.floor(4.5 * mul * ticks + 1e-9), `speed ${mul}`);
   }
+});
+
+test('a hard bot detours to grab a nearby god-mode pickup', () => {
+  let grabbed = 0;
+  for (let trial = 0; trial < 10; trial++) {
+    const g = new Game([
+      { id: 'cpu', name: 'Bot', color: 0, kind: 'hard' },
+      { id: 'h', name: 'Human', color: 1, kind: 'human' },
+    ], 'classic');
+    g.startRound();
+    for (let t = 0; t < COUNTDOWN_TICKS; t++) g.tick();
+    g.grid.fill(0);
+    const [bot, human] = g.players;
+    Object.assign(bot, { x: 300, y: 400, dx: 1, dy: 0, run: null, ai: {} });
+    Object.assign(human, { x: 1000, y: 700, dx: -1, dy: 0, run: null });
+    // A god-mode pickup up and to the right of the bot: off its path, so it has to turn to get it.
+    const b = { id: 999, type: 'god', v: '', x: 380, y: 330, w: 14, h: 18 };
+    g.bonuses.set(b.id, b);
+    for (let y = b.y; y < b.y + b.h; y++) g.grid.fill(b.id, y * W + b.x, y * W + b.x + b.w);
+    for (let t = 0; t < 60; t++) {
+      if (g.tick().ev.some((e) => e.k === 'take' && e.type === 'god')) { grabbed++; break; }
+    }
+  }
+  assert.ok(grabbed >= 9, `grabbed the pickup in ${grabbed}/10 trials`);
 });
