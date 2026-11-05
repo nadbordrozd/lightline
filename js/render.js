@@ -8,6 +8,8 @@ import { W, H, TICK_MS, BONUS_SCALE, playerPalette } from './constants.js';
 import { BONUS_TYPES, artFor } from './art.js';
 
 const RES = 2; // backing pixels per arena cell
+// Line widths in cells for each trail style: blurred glow, coloured line, white-hot centre.
+const TRAIL_WIDTHS = { bold: { glow: 6, core: 1.9, hot: 0.7 }, thin: { glow: 3, core: 1, hot: 0.35 } };
 const GLOW_RES = 0.5;
 const MAX_PARTICLES = 900;
 const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -34,11 +36,11 @@ function wipe(ctx) {
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
-export function bonusSprite(type, variant = '') {
-  const key = type + variant;
+export function bonusSprite(type, variant = '', S = BONUS_SCALE) {
+  const key = type + variant + S;
   if (bonusSprite.cache.has(key)) return bonusSprite.cache.get(key);
   const art = artFor(type, variant);
-  const S = BONUS_SCALE;
+  const k = S / BONUS_SCALE; // halo and highlight shrink with the art.
   const pad = 5;
   const lw = art[0].length * S;
   const lh = art.length * S;
@@ -51,7 +53,7 @@ export function bonusSprite(type, variant = '') {
   const hue = BONUS_TYPES[type].hue;
   g.fillStyle = `hsla(${hue},100%,50%,0.10)`;
   g.beginPath();
-  g.roundRect(-2.5, -2.5, lw + 5, lh + 5, 3);
+  g.roundRect(-2.5 * k, -2.5 * k, lw + 5 * k, lh + 5 * k, 3 * k);
   g.fill();
   const cells = (inset, light) => {
     for (let r = 0; r < art.length; r++) {
@@ -64,10 +66,10 @@ export function bonusSprite(type, variant = '') {
     }
   };
   g.shadowColor = `hsl(${hue},100%,60%)`;
-  g.shadowBlur = 5 * RES;
+  g.shadowBlur = 5 * k * RES;
   cells(0, 58);
   g.shadowBlur = 0;
-  cells(0.45, 84);
+  cells(0.45 * k, 84);
   const sprite = { canvas: c, pad, w: lw + 2 * pad, h: lh + 2 * pad };
   bonusSprite.cache.set(key, sprite);
   return sprite;
@@ -143,9 +145,11 @@ export class Renderer {
     wipe(this.bon);
     this.particles.length = 0;
     this.bonuses.clear();
+    this.bs = info.bs ?? BONUS_SCALE;
+    this.tw = TRAIL_WIDTHS[info.trails] ?? TRAIL_WIDTHS.bold;
     for (const [id, type, x, y, v] of info.bonuses) {
       const art = artFor(type, v);
-      const b = { id, type, v, x, y, w: art[0].length * BONUS_SCALE, h: art.length * BONUS_SCALE };
+      const b = { id, type, v, x, y, w: art[0].length * this.bs, h: art.length * this.bs };
       this.bonuses.set(id, b);
       this.drawBonus(b);
     }
@@ -155,7 +159,7 @@ export class Renderer {
   }
 
   drawBonus(b) {
-    const s = bonusSprite(b.type, b.v);
+    const s = bonusSprite(b.type, b.v, this.bs);
     this.bon.drawImage(s.canvas, b.x - s.pad, b.y - s.pad, s.w, s.h);
   }
 
@@ -194,9 +198,10 @@ export class Renderer {
 
   drawRun(pi, x0, y0, x1, y1, hue) {
     const st = this.styleFor(pi, hue);
-    this.drawLine(this.glow, x0, y0, x1, y1, 6, st.glow);
-    this.drawLine(this.trail, x0, y0, x1, y1, 1.9, st.core);
-    this.drawLine(this.trail, x0, y0, x1, y1, 0.7, st.hot);
+    const tw = this.tw;
+    this.drawLine(this.glow, x0, y0, x1, y1, tw.glow, st.glow);
+    this.drawLine(this.trail, x0, y0, x1, y1, tw.core, st.core);
+    this.drawLine(this.trail, x0, y0, x1, y1, tw.hot, st.hot);
   }
 
   // Apply one simulation frame (local or received from the host).
@@ -347,8 +352,8 @@ export class Renderer {
       const ix = x + dx * sp * a;
       const iy = y + dy * sp * a;
       if (a > 0) {
-        this.drawLine(f, x, y, ix, iy, 1.9, st.core);
-        this.drawLine(f, x, y, ix, iy, 0.7, st.hot);
+        this.drawLine(f, x, y, ix, iy, this.tw.core, st.core);
+        this.drawLine(f, x, y, ix, iy, this.tw.hot, st.hot);
       }
       const cx = ix + 0.5, cy = iy + 0.5;
       const hs = this.headSprites?.[i];

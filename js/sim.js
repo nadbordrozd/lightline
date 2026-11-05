@@ -1,7 +1,7 @@
 // The game simulation. Pure logic, no DOM: the same code runs locally and on an online host.
 // Each tick() returns a compact "frame" describing what changed; renderers (local or remote) draw from frames only.
 import {
-  W, H, TICK_HZ, BASE_SPEED, CELLS_PER_LEVEL, MAX_SPEED, GOD_TICKS, SWAP_GRACE_TICKS, COUNTDOWN_TICKS, BONUS_SCALE, MATCH_WINS,
+  W, H, TICK_HZ, BASE_SPEED, CELLS_PER_LEVEL, MAX_SPEED, GOD_TICKS, SWAP_GRACE_TICKS, COUNTDOWN_TICKS, BONUS_SCALE, MATCH_WINS, PICKUP_SCALES, DEFAULT_LOOK,
 } from './constants.js';
 import { artFor } from './art.js';
 import { rot, freeRay, cpuThink, cpuChooseStart } from './ai.js';
@@ -27,11 +27,14 @@ const isCpu = (p) => p.kind === 'easy' || p.kind === 'hard';
 export class Game {
   // roster: [{ id, name, color, kind: 'human' | 'easy' | 'hard', owner? }]
   // speedMul is the line speed setting: it scales how far every line moves per tick (1 = 100%).
-  constructor(roster, mode = 'shuffle', { speedMul = 1, target = MATCH_WINS } = {}) {
+  constructor(roster, mode = 'shuffle', { speedMul = 1, target = MATCH_WINS, look = DEFAULT_LOOK } = {}) {
     this.mode = MODES[mode] ? mode : 'shuffle';
     this.speedMul = speedMul;
     this.target = target; // wins needed to take the match (0 = endless)
     this.champion = -1; // index of the match winner once someone reaches the target
+    this.look = { ...look }; // trail style and pickup size; read at the start of each round
+    this.bonusScale = BONUS_SCALE;
+    this.trails = DEFAULT_LOOK.trails;
     this.grid = new Int16Array(W * H); // 0 empty, -1 trail/wall, >0 bonus id
     this.players = [];
     this.bonuses = new Map();
@@ -63,6 +66,8 @@ export class Game {
     }
     this.level = key;
     this.lastLevel = key;
+    this.bonusScale = PICKUP_SCALES[this.look.pickups] ?? BONUS_SCALE;
+    this.trails = this.look.trails ?? DEFAULT_LOOK.trails;
     this.round++;
     this.grid.fill(0);
     this.bonuses.clear();
@@ -96,6 +101,8 @@ export class Game {
       level: this.level,
       mode: this.mode,
       target: this.target,
+      bs: this.bonusScale,
+      trails: this.trails,
       players: this.players.map((p) => ({ id: p.id, name: p.name, color: p.color, kind: p.kind, owner: p.owner, li: p.li, wins: p.wins })),
       bonuses: [...this.bonuses.values()].map((b) => [b.id, b.type, b.x, b.y, b.v]),
       h: this.heads(),
@@ -114,8 +121,8 @@ export class Game {
   placeBonus(type, spawns) {
     const v = type === 'wall' ? (Math.random() < 0.5 ? 'h' : 'v') : '';
     const art = artFor(type, v);
-    const w = art[0].length * BONUS_SCALE;
-    const h = art.length * BONUS_SCALE;
+    const w = art[0].length * this.bonusScale;
+    const h = art.length * this.bonusScale;
     for (let t = 0; t < 40; t++) {
       const x = rndInt(20, W - 20 - w);
       const y = rndInt(20, H - 20 - h);

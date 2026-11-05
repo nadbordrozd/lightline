@@ -166,6 +166,13 @@ kbd {
 .speed-reset:disabled { opacity: 0.35; cursor: default; }
 .pause-speed { text-align: left; margin: 4px 0 14px; }
 .pause-speed[hidden] { display: none; }
+.pause-speed h3 small { text-transform: none; letter-spacing: 0.02em; font-family: var(--font-body); font-size: 13px; }
+.look-ctl { display: grid; gap: 8px; }
+.look-row { display: flex; align-items: center; gap: 12px; }
+.look-row > span { width: 64px; flex: none; color: var(--muted); font-weight: 600; }
+.look-ctl .seg { --c: var(--accent); flex: 1; max-width: 240px; grid-template-columns: repeat(2, 1fr); }
+.look-ctl .seg button { padding: 6px 2px; font-size: 14px; }
+.speed-ctl + h3 { margin-top: 18px; }
 
 .panel {
   width: min(1060px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 20px;

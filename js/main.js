@@ -1,4 +1,4 @@
-import { TICK_MS, COLORS, DEFAULT_SLOTS, MATCH_WINS, keyLabel, playerPalette } from './constants.js';
+import { TICK_MS, COLORS, DEFAULT_SLOTS, MATCH_WINS, PICKUP_SCALES, TRAIL_STYLES, DEFAULT_LOOK, keyLabel, playerPalette } from './constants.js';
 import { Game, MODES, LEVELS } from './sim.js';
 import { Renderer, bonusSprite } from './render.js';
 import { BONUS_TYPES } from './art.js';
@@ -76,6 +76,39 @@ for (const el of $$('.speed-ctl')) {
   $('.speed-reset', el).onclick = () => setSpeed(SPEED_DEFAULT);
 }
 syncSpeedControls();
+
+// ------------------------------------------------------------------ look (trail width, pickup size)
+// Both take effect from the next round, including in the demo behind the menu. Online, the
+// host's choice is sent to everyone with each round.
+const LOOK_OPTIONS = {
+  trails: { label: 'Trails', values: TRAIL_STYLES, names: { thin: 'Thin', bold: 'Bold' } },
+  pickups: { label: 'Pickups', values: Object.keys(PICKUP_SCALES), names: { small: 'Small', large: 'Large' } },
+};
+const look = {};
+for (const [k, o] of Object.entries(LOOK_OPTIONS)) {
+  const v = store.get(k, DEFAULT_LOOK[k]);
+  look[k] = o.values.includes(v) ? v : DEFAULT_LOOK[k];
+}
+export const getLook = () => ({ ...look });
+function setLook(k, v) {
+  look[k] = v;
+  store.set(k, v);
+  if (session?.game) session.game.look = getLook();
+  syncLookControls();
+}
+function syncLookControls() {
+  for (const b of $$('.look-ctl [data-look]')) b.classList.toggle('sel', look[b.dataset.look] === b.dataset.v);
+}
+for (const el of $$('.look-ctl')) {
+  el.innerHTML = Object.entries(LOOK_OPTIONS)
+    .map(([k, o]) => `<div class="look-row"><span>${o.label}</span><div class="seg">${o.values.map((v) => `<button data-look="${k}" data-v="${v}">${o.names[v]}</button>`).join('')}</div></div>`)
+    .join('');
+  el.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-look]');
+    if (b) setLook(b.dataset.look, b.dataset.v);
+  });
+}
+syncLookControls();
 
 // ------------------------------------------------------------------ main loop
 // The simulation is stepped from a Web Worker timer, because browsers throttle main-thread
@@ -278,7 +311,7 @@ class LocalSession extends Session {
     this.slots = slots;
     this.mode = mode;
     const roster = slots.map((s, i) => ({ id: 's' + i, name: COLORS[s.color].name, color: s.color, kind: s.kind }));
-    this.game = new Game(roster, mode, demo ? { speedMul: SPEED_DEFAULT, target: 0 } : { speedMul });
+    this.game = new Game(roster, mode, { look, ...(demo ? { speedMul: SPEED_DEFAULT, target: 0 } : { speedMul }) });
     slots.forEach((s, i) => {
       if (s.kind !== 'human') return;
       this.keymap.set(s.keys[0], { i, d: -1 });

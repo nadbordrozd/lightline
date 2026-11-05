@@ -1,7 +1,7 @@
 // Online play. One browser hosts: it runs the simulation and streams frames to guests,
 // who only send their key presses. See net.js for the transport.
 import {
-  $, store, esc, getSpeed, showScreen, screen, toast, colorVars, renderModes, setSession, Session, resumeGame, toMenu, startDemo,
+  $, store, esc, getSpeed, getLook, showScreen, screen, toast, colorVars, renderModes, setSession, Session, resumeGame, toMenu, startDemo,
 } from './main.js';
 import { Game, MODES } from './sim.js';
 import { MAX_PLAYERS, ONLINE_KEYS, ONLINE_COLOR_ORDER, keyLabel } from './constants.js';
@@ -271,7 +271,7 @@ class HostSession extends Session {
   constructor(hostRoom) {
     super();
     this.room = hostRoom;
-    this.game = new Game(hostRoom.roster(), hostRoom.mode, { speedMul: getSpeed() });
+    this.game = new Game(hostRoom.roster(), hostRoom.mode, { speedMul: getSpeed(), look: getLook() });
     this.newRound();
   }
 

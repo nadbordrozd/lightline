@@ -9,7 +9,12 @@ export const MAX_SPEED = 14;
 export const GOD_TICKS = 255; // ~8.5 s
 export const SWAP_GRACE_TICKS = 15; // invulnerability after a Switcheroo
 export const COUNTDOWN_TICKS = 3 * TICK_HZ;
-export const BONUS_SCALE = 2; // each cell of bonus art covers BONUS_SCALE x BONUS_SCALE grid cells
+export const BONUS_SCALE = 2; // default: each cell of bonus art covers BONUS_SCALE x BONUS_SCALE grid cells
+// Look settings, chosen per match and applied from the next round. 'small' pickups and 'thin'
+// trails match the original game (one art pixel per cell, one-cell-wide lines).
+export const PICKUP_SCALES = { small: 1, large: 2 };
+export const TRAIL_STYLES = ['thin', 'bold'];
+export const DEFAULT_LOOK = { trails: 'bold', pickups: 'large' };
 export const MAX_PLAYERS = 8;
 export const MATCH_WINS = 10; // the first player to win this many rounds wins the match
 
