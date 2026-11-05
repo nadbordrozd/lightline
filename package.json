@@ -1,0 +1,10 @@
+{
+  "name": "lightline",
+  "private": true,
+  "type": "module",
+  "description": "A neon light-cycle game for up to 8 players, local or online.",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test tests/"
+  }
+}

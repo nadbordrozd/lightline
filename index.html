@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lightline</title>
+  <meta name="description" content="A neon light-cycle game for up to 8 players. Two keys each. Don't hit anything.">
+  <meta name="theme-color" content="#05060d">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2305060d'/%3E%3Cpath d='M5 26V9h10v9h12' fill='none' stroke='%2300e5ff' stroke-width='3'/%3E%3Ccircle cx='27' cy='18' r='3' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app" data-screen="menu">
+    <header id="hud" class="hud">
+      <div class="hud-left">
+        <span class="brand-mini">LIGHTLINE</span>
+        <span id="hud-round" class="hud-round"></span>
+      </div>
+      <div id="scoreboard" class="scoreboard"></div>
+      <div class="hud-right">
+        <button id="btn-sound" class="icon-btn" title="Sound on/off" aria-label="Sound on/off"></button>
+        <button id="btn-pause" class="icon-btn" title="Menu (Esc)" aria-label="Menu">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="arena" class="arena">
+      <div id="stage" class="stage">
+        <div class="layers"></div>
+        <div id="countdown" class="countdown"></div>
+        <div id="banner" class="banner"></div>
+      </div>
+    </main>
+
+    <!-- Main menu -->
+    <section id="screen-menu" class="screen screen-menu">
+      <div class="menu-center">
+        <h1 class="logo" aria-label="Lightline"><span>LIGHT</span><span>LINE</span></h1>
+        <p class="tagline">Two keys. One line. Don't hit anything.</p>
+        <nav class="menu-buttons">
+          <button class="btn btn-primary btn-big" data-go="local">Local match</button>
+          <button class="btn btn-big" data-go="online">Online match</button>
+          <button class="btn btn-ghost" data-go="help">How to play</button>
+        </nav>
+      </div>
+      <footer class="menu-foot">Up to 8 players · born as a hidden easter egg in <a href="https://turing-game.pl/" target="_blank" rel="noopener">Turing Game</a></footer>
+    </section>
+
+    <!-- Local setup -->
+    <section id="screen-local" class="screen">
+      <div class="panel panel-wide">
+        <div class="panel-head">
+          <button class="back" data-go="menu" aria-label="Back">‹</button>
+          <h2>Local match</h2>
+          <p class="hint">Everyone shares this keyboard. Click a key to change it.</p>
+        </div>
+        <div class="setup-cols">
+          <div>
+            <h3>Players</h3>
+            <div id="player-grid" class="player-grid"></div>
+          </div>
+          <div>
+            <h3>Game mode</h3>
+            <div id="local-modes" class="mode-list"></div>
+          </div>
+        </div>
+        <div class="panel-foot">
+          <span id="local-status" class="status"></span>
+          <button id="btn-local-start" class="btn btn-primary btn-big">Start</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Online: create or join -->
+    <section id="screen-online" class="screen">
+      <div class="panel panel-narrow">
+        <div class="panel-head">
+          <button class="back" data-go="menu" aria-label="Back">‹</button>
+          <h2>Online match</h2>
+          <p class="hint">Play with friends over the internet. One person hosts, the others join with a code.</p>
+        </div>
+        <label class="field">
+          <span>Your name</span>
+          <input id="online-name" maxlength="14" autocomplete="nickname" spellcheck="false">
+        </label>
+        <div class="online-actions">
+          <div class="oa-card">
+            <h3>Host a room</h3>
+            <p>You get a code and a link to send to friends.</p>
+            <button id="btn-host" class="btn btn-primary">Create room</button>
+          </div>
+          <div class="oa-card">
+            <h3>Join a room</h3>
+            <input id="join-code" class="code-input" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false">
+            <button id="btn-join" class="btn">Join</button>
+          </div>
+        </div>
+        <p id="online-status" class="status"></p>
+      </div>
+    </section>
+
+    <!-- Online lobby -->
+    <section id="screen-lobby" class="screen">
+      <div class="panel panel-wide">
+        <div class="panel-head lobby-head">
+          <div>
+            <div class="kicker">Room code</div>
+            <div id="lobby-code" class="room-code">····</div>
+          </div>
+          <button id="btn-copy-link" class="btn btn-small">Copy invite link</button>
+        </div>
+        <div class="setup-cols">
+          <div>
+            <h3>Players <span id="lobby-count" class="count"></span></h3>
+            <ul id="lobby-roster" class="roster"></ul>
+            <div class="host-only bot-buttons">
+              <button class="btn btn-small" data-cpu="easy">+ Easy bot</button>
+              <button class="btn btn-small" data-cpu="hard">+ Hard bot</button>
+            </div>
+          </div>
+          <div>
+            <h3>Players on this computer</h3>
+            <div class="stepper">
+              <button id="locals-minus" aria-label="Fewer">−</button>
+              <span id="locals-n">1</span>
+              <button id="locals-plus" aria-label="More">+</button>
+            </div>
+            <div id="locals-keys" class="locals-keys"></div>
+            <h3>Game mode</h3>
+            <div id="lobby-modes" class="mode-list compact"></div>
+          </div>
+        </div>
+        <div class="panel-foot">
+          <button id="btn-leave" class="btn btn-ghost">Leave</button>
+          <span id="lobby-status" class="status"></span>
+          <button id="btn-lobby-start" class="btn btn-primary btn-big host-only">Start match</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- How to play -->
+    <section id="screen-help" class="screen">
+      <div class="panel panel-wide">
+        <div class="panel-head">
+          <button class="back" data-go="menu" aria-label="Back">‹</button>
+          <h2>How to play</h2>
+        </div>
+        <div class="help-cols">
+          <div>
+            <h3>The rules</h3>
+            <ul class="rules">
+              <li>Every player drives a light cycle that leaves a solid trail behind it.</li>
+              <li>You have two keys: <b>turn left</b> and <b>turn right</b>, relative to where you're heading.</li>
+              <li>Hit a wall, the edge or any trail (yours too) and you're out.</li>
+              <li>The last one alive wins the round and scores a point.</li>
+              <li>During the 3-2-1 countdown you can already turn to pick your starting direction.</li>
+              <li><kbd>Space</kbd> starts the next round, <kbd>Esc</kbd> opens the menu.</li>
+            </ul>
+            <h3>Arenas in Shuffle mode</h3>
+            <ul id="help-levels" class="levels"></ul>
+          </div>
+          <div>
+            <h3>Bonuses</h3>
+            <p class="hint">Drive into one to trigger it.</p>
+            <ul id="help-bonuses" class="bonus-list"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pause menu -->
+    <section id="screen-pause" class="screen screen-pause">
+      <div class="panel panel-narrow pause-panel">
+        <h2 id="pause-title">Paused</h2>
+        <div id="pause-buttons" class="pause-buttons"></div>
+      </div>
+    </section>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
