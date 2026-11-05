@@ -321,12 +321,12 @@ class HostSession extends Session {
     this.onFrame(fr);
     if (this.game.phase === 'over') {
       this.ticking = false;
-      this.later(() => this.newRound(), NEXT_ROUND_MS);
+      if (this.game.champion < 0) this.later(() => this.newRound(), NEXT_ROUND_MS);
     }
   }
 
   next() {
-    if (this.game.phase === 'over') this.newRound();
+    if (this.game.phase === 'over' && this.game.champion < 0) this.newRound();
   }
 
   nextHint() {
@@ -339,6 +339,17 @@ class HostSession extends Session {
       ['End match', () => this.room.endMatch()],
       ['Leave room', () => this.room.leave()],
     ];
+  }
+
+  winnerButtons() {
+    return [
+      ['Back to lobby', () => this.room.endMatch()],
+      ['Leave room', () => this.room.leave()],
+    ];
+  }
+
+  winnerNote() {
+    return 'Everyone goes back to the lobby when you do.';
   }
 }
 
@@ -468,6 +479,14 @@ class GuestSession extends Session {
       ['Back to game', () => resumeGame()],
       ['Leave room', () => this.room.leave()],
     ];
+  }
+
+  winnerButtons() {
+    return [['Leave room', () => this.room.leave()]];
+  }
+
+  winnerNote() {
+    return 'Waiting for the host to go back to the lobby…';
   }
 }
 

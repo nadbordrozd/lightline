@@ -128,3 +128,18 @@ test('a hard bot detours to grab a nearby god-mode pickup', () => {
   }
   assert.ok(grabbed >= 9, `grabbed the pickup in ${grabbed}/10 trials`);
 });
+
+test('the first player to the target number of wins takes the match', () => {
+  const g = new Game(bots(2, 'easy'), 'classic', { target: 3 });
+  let end = null;
+  for (let r = 0; r < 60 && g.champion < 0; r++) {
+    end = playRound(g);
+    const leader = Math.max(...g.players.map((p) => p.wins));
+    assert.equal(end.champ >= 0, leader >= 3);
+  }
+  assert.ok(g.champion >= 0, 'nobody won the match');
+  assert.equal(end.champ, g.champion);
+  assert.equal(g.players[g.champion].wins, 3);
+  assert.equal(new Game(bots(2)).target, 10);
+  assert.equal(new Game(bots(2), 'classic', { target: 0 }).champion, -1);
+});

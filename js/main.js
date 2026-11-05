@@ -1,8 +1,9 @@
-import { TICK_MS, COLORS, DEFAULT_SLOTS, keyLabel, playerPalette } from './constants.js';
+import { TICK_MS, COLORS, DEFAULT_SLOTS, MATCH_WINS, keyLabel, playerPalette } from './constants.js';
 import { Game, MODES, LEVELS } from './sim.js';
 import { Renderer, bonusSprite } from './render.js';
 import { BONUS_TYPES } from './art.js';
 import { sfx } from './audio.js';
+import { music } from './music.js';
 
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -23,6 +24,9 @@ let session = null;
 // ------------------------------------------------------------------ screens & toast
 export function showScreen(name) {
   app.dataset.screen = name;
+  const inMatch = session && !session.demo && (name === 'game' || name === 'pause');
+  music.want(inMatch ? 'game' : 'menu');
+  music.duck(name === 'pause');
 }
 export function screen() {
   return app.dataset.screen;
@@ -110,6 +114,7 @@ requestAnimationFrame(function raf(now) {
 export function setSession(s) {
   session?.destroy();
   session = s;
+  if (s && !s.demo) music.restart('game'); // every match starts the game track from the top
 }
 export function getSession() {
   return session;
@@ -136,7 +141,7 @@ class Hud {
       .map((p, i) => `<div class="chip${s.isMine(p) ? ' mine' : ''}" data-i="${i}" style="${colorVars(p.color)}"><i></i><span class="n">${esc(p.name)}</span><b>${p.wins}</b></div>`)
       .join('');
     const lvl = LEVELS[info.level];
-    this.round.textContent = `Round ${info.round} · ${lvl.name}`;
+    this.round.textContent = `Round ${info.round} · ${lvl.name}` + (info.target ? ` · first to ${info.target}` : '');
     this.showBanner(
       `<div class="kicker">Round ${info.round}</div><div class="title">${esc(lvl.name)}</div><div class="sub">${esc(lvl.desc)}</div>`,
       'intro',
@@ -184,6 +189,14 @@ class Hud {
     const p = e.w >= 0 ? this.players[e.w] : null;
     const title = p ? `${esc(p.name)} wins` : 'Draw';
     const style = p ? `style="--c:${playerPalette(p.color).core}"` : '';
+    if (e.champ >= 0 && p) {
+      // That was the deciding round: say so, then bring up the winner screen.
+      sfx.champion();
+      this.showBanner(`<div class="kicker">Round ${s.roundNo ?? ''} over</div><div class="title" ${style}>${title}</div><div class="sub">…and takes the match</div>`);
+      const standings = this.players.map((pl, i) => ({ ...pl, wins: e.wins[i] ?? pl.wins }));
+      s.later(() => showWinner(standings, e.champ, s), 2400);
+      return;
+    }
     if (p) sfx.win();
     else sfx.draw();
     this.showBanner(
@@ -245,6 +258,12 @@ export class Session {
   pauseButtons() {
     return [];
   }
+  winnerButtons() {
+    return [['Main menu', () => toMenu()]];
+  }
+  winnerNote() {
+    return '';
+  }
   destroy() {
     this.ticking = false;
     this.timers.forEach(clearTimeout);
@@ -259,7 +278,7 @@ class LocalSession extends Session {
     this.slots = slots;
     this.mode = mode;
     const roster = slots.map((s, i) => ({ id: 's' + i, name: COLORS[s.color].name, color: s.color, kind: s.kind }));
-    this.game = new Game(roster, mode, { speedMul: demo ? SPEED_DEFAULT : speedMul });
+    this.game = new Game(roster, mode, demo ? { speedMul: SPEED_DEFAULT, target: 0 } : { speedMul });
     slots.forEach((s, i) => {
       if (s.kind !== 'human') return;
       this.keymap.set(s.keys[0], { i, d: -1 });
@@ -286,7 +305,7 @@ class LocalSession extends Session {
     }
   }
   next() {
-    if (this.game.phase === 'over') this.newRound();
+    if (this.game.phase === 'over' && this.game.champion < 0) this.newRound();
   }
   nextHint() {
     return '<div class="sub">Press <kbd>Space</kbd> for the next round</div><div class="actions"><button class="btn btn-primary" data-action="next">Next round</button></div>';
@@ -297,6 +316,13 @@ class LocalSession extends Session {
       ['Restart match', () => startLocal(this.slots, this.mode)],
       ['Back to setup', () => { setSession(null); openLocalSetup(); }],
       ['Quit to menu', () => toMenu()],
+    ];
+  }
+  winnerButtons() {
+    return [
+      ['Main menu', () => toMenu()],
+      ['Play again', () => startLocal(this.slots, this.mode)],
+      ['Change setup', () => { setSession(null); openLocalSetup(); }],
     ];
   }
 }
@@ -311,6 +337,38 @@ export function toMenu() {
   hud.hide();
   startDemo();
   showScreen('menu');
+}
+
+// ------------------------------------------------------------------ match winner
+let winnerAt = 0;
+function showWinner(players, champ, s) {
+  if (session !== s) return;
+  const c = players[champ];
+  $('#winner-panel').style.cssText = `--c:${playerPalette(c.color).core};` + colorVars(c.color);
+  $('#winner-name').textContent = c.name;
+  $('#winner-sub').textContent = `wins the match · first to ${c.wins}`;
+  const top = Math.max(1, c.wins);
+  const ranked = players.map((p, i) => ({ ...p, i })).sort((a, b) => b.wins - a.wins || a.i - b.i);
+  $('#winner-table').innerHTML = ranked
+    .map((p) => `<li class="${p.i === champ ? 'champ' : ''}" style="${colorVars(p.color)}"><i></i><span class="n">${esc(p.name)}</span><span class="bar"><span style="width:${(100 * p.wins) / top}%"></span></span><b>${p.wins}</b></li>`)
+    .join('');
+  const note = s.winnerNote();
+  $('#winner-note').textContent = note;
+  $('#winner-note').hidden = !note;
+  const box = $('#winner-buttons');
+  box.innerHTML = '';
+  s.winnerButtons().forEach(([label, fn], i) => {
+    const b = document.createElement('button');
+    b.className = 'btn' + (i === 0 ? ' btn-primary' : '');
+    b.textContent = label;
+    b.onclick = fn;
+    box.appendChild(b);
+  });
+  hud.hide();
+  showScreen('winner');
+  // People are often still hammering Space from the last round, so ignore keys for a moment.
+  winnerAt = performance.now();
+  setTimeout(() => { if (screen() === 'winner') box.firstChild?.focus(); }, 1200);
 }
 
 // ------------------------------------------------------------------ pause
@@ -479,6 +537,11 @@ window.addEventListener('keydown', (e) => {
   }
   const scr = screen();
   if (e.target instanceof HTMLInputElement) return;
+  if (scr === 'winner') {
+    if (performance.now() - winnerAt < 1200) e.preventDefault();
+    else if (e.code === 'Escape') $('#winner-buttons button')?.click();
+    return;
+  }
   if (scr === 'game') {
     if (e.repeat && GAME_KEYS.has(e.code)) {
       e.preventDefault();
@@ -526,17 +589,22 @@ $('#btn-pause').onclick = () => openPause();
 $('#banner').addEventListener('click', (e) => {
   if (e.target.closest('[data-action="next"]')) session?.next();
 });
-const soundBtn = $('#btn-sound');
-const paintSound = () => {
-  soundBtn.innerHTML = sfx.isMuted()
-    ? '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2"/></svg>'
-    : '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+const SLASH = '<path d="M3 3l18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>';
+const paintAudio = () => {
+  for (const b of $$('.btn-sound')) {
+    b.classList.toggle('off', sfx.isMuted());
+    b.innerHTML = sfx.isMuted()
+      ? '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+  }
+  for (const b of $$('.btn-music')) {
+    b.classList.toggle('off', music.isMuted());
+    b.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 17V5l11-2v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="17.5" cy="15.5" r="2.8" fill="currentColor"/>${music.isMuted() ? SLASH : ''}</svg>`;
+  }
 };
-soundBtn.onclick = () => {
-  sfx.setMuted(!sfx.isMuted());
-  paintSound();
-};
-paintSound();
+$$('.btn-sound').forEach((b) => { b.onclick = () => { sfx.setMuted(!sfx.isMuted()); paintAudio(); }; });
+$$('.btn-music').forEach((b) => { b.onclick = () => { music.setMuted(!music.isMuted()); paintAudio(); }; });
+paintAudio();
 
 // Online play is loaded on demand so local play never needs the network.
 async function openOnline(code) {

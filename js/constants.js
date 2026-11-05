@@ -11,6 +11,7 @@ export const SWAP_GRACE_TICKS = 15; // invulnerability after a Switcheroo
 export const COUNTDOWN_TICKS = 3 * TICK_HZ;
 export const BONUS_SCALE = 2; // each cell of bonus art covers BONUS_SCALE x BONUS_SCALE grid cells
 export const MAX_PLAYERS = 8;
+export const MATCH_WINS = 10; // the first player to win this many rounds wins the match
 
 export const COLORS = [
   { name: 'Red', hue: 355 },

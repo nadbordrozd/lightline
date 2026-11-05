@@ -1,4 +1,4 @@
-// Tiny synthesised sound effects (no audio files).
+// Tiny synthesised sound effects (no audio files). The music lives in music.js.
 let ctx = null;
 let master = null;
 let noiseBuf = null;
@@ -56,6 +56,9 @@ function noise(dur, { vol = 0.3, from = 3000, to = 200 } = {}) {
   s.stop(t + dur);
 }
 
+// The shared AudioContext (created on first use), for music.js.
+export const audioCtx = () => ac();
+
 let lastDeath = 0;
 export const sfx = {
   unlock: () => ac(),
@@ -82,6 +85,7 @@ export const sfx = {
     tone(220, 0.4, { type: 'sawtooth', vol: 0.1, to: 40 });
   },
   win: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.22, { type: 'triangle', vol: 0.18, delay: i * 0.09 })),
+  champion: () => [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, i === 6 ? 0.7 : 0.2, { type: 'triangle', vol: 0.2, delay: i * 0.11 })),
   draw: () => [392, 330, 262].forEach((f, i) => tone(f, 0.25, { type: 'triangle', vol: 0.16, delay: i * 0.1 })),
   click: () => tone(1400, 0.04, { type: 'square', vol: 0.05 }),
 };

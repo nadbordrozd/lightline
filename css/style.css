@@ -32,7 +32,8 @@ kbd {
 /* ---------------------------------------------------------------- arena */
 .arena { flex: 1; display: grid; place-items: center; min-height: 0; padding: 0 12px 12px; }
 #app[data-screen='menu'] .arena, #app[data-screen='local'] .arena, #app[data-screen='online'] .arena,
-#app[data-screen='lobby'] .arena, #app[data-screen='help'] .arena, #app[data-screen='about'] .arena { padding-top: 12px; }
+#app[data-screen='lobby'] .arena, #app[data-screen='help'] .arena, #app[data-screen='about'] .arena,
+#app[data-screen='winner'] .arena { padding-top: 12px; }
 
 .stage {
   position: relative;
@@ -91,6 +92,11 @@ kbd {
   background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); color: var(--muted); transition: 0.15s;
 }
 .icon-btn:hover { color: var(--text); border-color: var(--line-strong); }
+.icon-btn.off { opacity: 0.55; }
+/* Music and sound toggles for the menus, where the HUD is hidden. */
+.corner-audio { position: fixed; top: 12px; right: 16px; z-index: 7; display: flex; gap: 6px; transition: opacity 0.2s; }
+.corner-audio .icon-btn { background: rgba(5, 7, 18, 0.7); }
+#app[data-screen='game'] .corner-audio, #app[data-screen='pause'] .corner-audio { opacity: 0; pointer-events: none; }
 
 /* ---------------------------------------------------------------- countdown & banner */
 .countdown {
@@ -131,7 +137,7 @@ kbd {
 }
 #app[data-screen='menu'] #screen-menu, #app[data-screen='local'] #screen-local, #app[data-screen='online'] #screen-online,
 #app[data-screen='lobby'] #screen-lobby, #app[data-screen='help'] #screen-help, #app[data-screen='about'] #screen-about,
-#app[data-screen='pause'] #screen-pause { display: grid; }
+#app[data-screen='pause'] #screen-pause, #app[data-screen='winner'] #screen-winner { display: grid; }
 .screen > * { animation: rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
 
@@ -317,3 +323,45 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 229, 25
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 .mode-list + h3, .host-only > h3:first-child { margin-top: 20px; }
+
+/* ---------------------------------------------------------------- match winner */
+.screen-winner { background: rgba(3, 4, 10, 0.55); }
+.winner-panel {
+  --c: var(--accent); position: relative; overflow: hidden; text-align: center; width: min(480px, 100%);
+  border-color: color-mix(in srgb, var(--c) 50%, transparent);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 60px color-mix(in srgb, var(--c) 22%, transparent);
+}
+.winner-glow {
+  position: absolute; left: 50%; top: -120px; width: 360px; height: 260px; transform: translateX(-50%); pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 40%, transparent), transparent); animation: glow 3s ease-in-out infinite;
+}
+@keyframes glow { 50% { opacity: 0.55; transform: translateX(-50%) scale(1.15); } }
+.winner-panel > *:not(.winner-glow) { position: relative; }
+.winner-cup {
+  width: 64px; height: 64px; color: var(--c); margin: 4px auto 6px; display: block;
+  filter: drop-shadow(0 0 8px var(--c)) drop-shadow(0 0 22px var(--c)); animation: cup 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+@keyframes cup { from { transform: scale(0.3) rotate(-14deg); opacity: 0; } }
+.winner-name {
+  font-weight: 900; font-size: clamp(34px, 7vw, 54px); letter-spacing: 0.06em; margin: 6px 0 0; overflow-wrap: anywhere;
+  color: color-mix(in srgb, var(--c) 35%, #fff); text-shadow: 0 0 10px var(--c), 0 0 34px var(--c);
+}
+.winner-sub { margin: 4px 0 20px; color: var(--muted); font-size: 18px; letter-spacing: 0.04em; }
+.standings { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 6px; text-align: left; }
+.standings li {
+  --pc: hsl(var(--h) var(--s) var(--l));
+  display: grid; grid-template-columns: 10px minmax(0, 8em) 1fr 2.2em; align-items: center; gap: 10px;
+  padding: 7px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid transparent;
+}
+.standings li.champ { border-color: color-mix(in srgb, var(--pc) 45%, transparent); background: color-mix(in srgb, var(--pc) 10%, transparent); }
+.standings i { width: 10px; height: 10px; border-radius: 50%; background: var(--pc); box-shadow: 0 0 8px var(--pc); }
+.standings .n { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.standings .bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+.standings .bar span { display: block; height: 100%; background: var(--pc); box-shadow: 0 0 8px var(--pc); animation: grow 0.9s 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes grow { from { width: 0; } }
+.standings b { font-family: var(--font-display); text-align: right; color: var(--pc); }
+.winner-note { margin: 0 0 14px; }
+.winner-note[hidden] { display: none; }
+.winner-buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.winner-buttons .btn { flex: 1 1 130px; }
+@media (max-width: 760px) { .screen { padding-top: 60px; } }

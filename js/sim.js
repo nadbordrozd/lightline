@@ -1,7 +1,7 @@
 // The game simulation. Pure logic, no DOM: the same code runs locally and on an online host.
 // Each tick() returns a compact "frame" describing what changed; renderers (local or remote) draw from frames only.
 import {
-  W, H, TICK_HZ, BASE_SPEED, CELLS_PER_LEVEL, MAX_SPEED, GOD_TICKS, SWAP_GRACE_TICKS, COUNTDOWN_TICKS, BONUS_SCALE,
+  W, H, TICK_HZ, BASE_SPEED, CELLS_PER_LEVEL, MAX_SPEED, GOD_TICKS, SWAP_GRACE_TICKS, COUNTDOWN_TICKS, BONUS_SCALE, MATCH_WINS,
 } from './constants.js';
 import { artFor } from './art.js';
 import { rot, freeRay, cpuThink, cpuChooseStart } from './ai.js';
@@ -27,9 +27,11 @@ const isCpu = (p) => p.kind === 'easy' || p.kind === 'hard';
 export class Game {
   // roster: [{ id, name, color, kind: 'human' | 'easy' | 'hard', owner? }]
   // speedMul is the line speed setting: it scales how far every line moves per tick (1 = 100%).
-  constructor(roster, mode = 'shuffle', { speedMul = 1 } = {}) {
+  constructor(roster, mode = 'shuffle', { speedMul = 1, target = MATCH_WINS } = {}) {
     this.mode = MODES[mode] ? mode : 'shuffle';
     this.speedMul = speedMul;
+    this.target = target; // wins needed to take the match (0 = endless)
+    this.champion = -1; // index of the match winner once someone reaches the target
     this.grid = new Int16Array(W * H); // 0 empty, -1 trail/wall, >0 bonus id
     this.players = [];
     this.bonuses = new Map();
@@ -93,6 +95,7 @@ export class Game {
       round: this.round,
       level: this.level,
       mode: this.mode,
+      target: this.target,
       players: this.players.map((p) => ({ id: p.id, name: p.name, color: p.color, kind: p.kind, owner: p.owner, li: p.li, wins: p.wins })),
       bonuses: [...this.bonuses.values()].map((b) => [b.id, b.type, b.x, b.y, b.v]),
       h: this.heads(),
@@ -286,7 +289,8 @@ export class Game {
     this.phase = 'over';
     const winner = multi && alive.length === 1 ? alive[0] : null;
     if (winner) winner.wins++;
-    fr.ev.push({ k: 'end', w: winner ? winner.index : -1, wins: this.players.map((p) => p.wins) });
+    if (winner && this.target > 0 && winner.wins >= this.target) this.champion = winner.index;
+    fr.ev.push({ k: 'end', w: winner ? winner.index : -1, wins: this.players.map((p) => p.wins), champ: this.champion });
   }
 
   removeBonus(b) {

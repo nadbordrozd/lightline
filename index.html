@@ -21,7 +21,8 @@
       </div>
       <div id="scoreboard" class="scoreboard"></div>
       <div class="hud-right">
-        <button id="btn-sound" class="icon-btn" title="Sound on/off" aria-label="Sound on/off"></button>
+        <button class="icon-btn btn-music" title="Music on/off" aria-label="Music on/off"></button>
+        <button class="icon-btn btn-sound" title="Sound effects on/off" aria-label="Sound effects on/off"></button>
         <button id="btn-pause" class="icon-btn" title="Menu (Esc)" aria-label="Menu">
           <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor"/></svg>
         </button>
@@ -35,6 +36,11 @@
         <div id="banner" class="banner"></div>
       </div>
     </main>
+
+    <div class="corner-audio">
+      <button class="icon-btn btn-music" title="Music on/off" aria-label="Music on/off"></button>
+      <button class="icon-btn btn-sound" title="Sound effects on/off" aria-label="Sound effects on/off"></button>
+    </div>
 
     <!-- Main menu -->
     <section id="screen-menu" class="screen screen-menu">
@@ -162,7 +168,7 @@
               <li>Every player drives a light cycle that leaves a solid trail behind it.</li>
               <li>You have two keys: <b>turn left</b> and <b>turn right</b>, relative to where you're heading.</li>
               <li>Hit a wall, the edge or any trail (yours too) and you're out.</li>
-              <li>The last one alive wins the round and scores a point.</li>
+              <li>The last one alive wins the round and scores a point. The first to <b>10 points</b> wins the match.</li>
               <li>During the 3-2-1 countdown you can already turn to pick your starting direction.</li>
               <li><kbd>Space</kbd> starts the next round, <kbd>Esc</kbd> opens the menu.</li>
             </ul>
@@ -204,6 +210,22 @@
           <div class="speed-ctl"></div>
         </div>
         <div id="pause-buttons" class="pause-buttons"></div>
+      </div>
+    </section>
+
+    <!-- Match winner -->
+    <section id="screen-winner" class="screen screen-winner">
+      <div id="winner-panel" class="panel panel-narrow winner-panel">
+        <div class="winner-glow" aria-hidden="true"></div>
+        <svg class="winner-cup" viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M20 10h24v14a12 12 0 0 1-24 0zM20 14h-8v4a8 8 0 0 0 8 8M44 14h8v4a8 8 0 0 1-8 8M32 36v10M22 54h20M26 46h12v8H26z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+        <div class="kicker">Match over</div>
+        <h2 id="winner-name" class="winner-name"></h2>
+        <p id="winner-sub" class="winner-sub"></p>
+        <ol id="winner-table" class="standings"></ol>
+        <p id="winner-note" class="hint winner-note"></p>
+        <div id="winner-buttons" class="winner-buttons"></div>
       </div>
     </section>
 
