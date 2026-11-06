@@ -1,7 +1,7 @@
 // The game simulation. Pure logic, no DOM: the same code runs locally and on an online host.
 // Each tick() returns a compact "frame" describing what changed; renderers (local or remote) draw from frames only.
 import {
-  W, H, TICK_HZ, BASE_SPEED, CELLS_PER_LEVEL, MAX_SPEED, GOD_TICKS, SWAP_GRACE_TICKS, COUNTDOWN_TICKS, BONUS_SCALE, MATCH_WINS, PICKUP_SCALES, DEFAULT_LOOK,
+  W, H, TICK_HZ, BASE_SPEED, CELLS_PER_LEVEL, MAX_SPEED, GOD_TICKS, SWAP_GRACE_TICKS, COUNTDOWN_TICKS, BONUS_SCALE, MATCH_WINS, DEFAULT_LOOK,
 } from './constants.js';
 import { artFor } from './art.js';
 import { rot, freeRay, cpuThink, cpuChooseStart } from './ai.js';
@@ -9,7 +9,7 @@ import { rot, freeRay, cpuThink, cpuChooseStart } from './ai.js';
 export const LEVELS = {
   classic: { name: 'Classic', desc: 'Pure light cycles. No bonuses.', counts: {} },
   enhanced: { name: 'Enhanced', desc: 'A bit of everything.', counts: { speed: 10, slow: 5, wall: 15, god: 3, bomb: 20, teleport: 8, switch: 1 } },
-  speedy: { name: 'Speedy', desc: 'Speed-ups everywhere. Hold on.', counts: { speed: 500, slow: 3 } },
+  speedy: { name: 'Speedy', desc: 'Speed-ups everywhere. Hold on.', counts: { speed: 380, slow: 3 } },
   switcheroo: { name: 'Switcheroo', desc: 'Expect to swap places. A lot.', counts: { switch: 40 } },
   wally: { name: 'Wally', desc: 'Walls to drop and invincibility to grab.', counts: { speed: 1, wall: 150, god: 20 } },
   turbo: { name: 'Turbo', desc: 'Everything, doubled.', counts: { speed: 15, slow: 7, wall: 20, god: 5, bomb: 40, teleport: 13, switch: 2 } },
@@ -32,8 +32,7 @@ export class Game {
     this.speedMul = speedMul;
     this.target = target; // wins needed to take the match (0 = endless)
     this.champion = -1; // index of the match winner once someone reaches the target
-    this.look = { ...look }; // trail style and pickup size; read at the start of each round
-    this.bonusScale = BONUS_SCALE;
+    this.look = { ...look }; // trail style; read at the start of each round
     this.trails = DEFAULT_LOOK.trails;
     this.grid = new Int16Array(W * H); // 0 empty, -1 trail/wall, >0 bonus id
     this.players = [];
@@ -66,7 +65,6 @@ export class Game {
     }
     this.level = key;
     this.lastLevel = key;
-    this.bonusScale = PICKUP_SCALES[this.look.pickups] ?? BONUS_SCALE;
     this.trails = this.look.trails ?? DEFAULT_LOOK.trails;
     this.round++;
     this.grid.fill(0);
@@ -101,7 +99,6 @@ export class Game {
       level: this.level,
       mode: this.mode,
       target: this.target,
-      bs: this.bonusScale,
       trails: this.trails,
       players: this.players.map((p) => ({ id: p.id, name: p.name, color: p.color, kind: p.kind, owner: p.owner, li: p.li, wins: p.wins })),
       bonuses: [...this.bonuses.values()].map((b) => [b.id, b.type, b.x, b.y, b.v]),
@@ -121,8 +118,8 @@ export class Game {
   placeBonus(type, spawns) {
     const v = type === 'wall' ? (Math.random() < 0.5 ? 'h' : 'v') : '';
     const art = artFor(type, v);
-    const w = art[0].length * this.bonusScale;
-    const h = art.length * this.bonusScale;
+    const w = art[0].length * BONUS_SCALE;
+    const h = art.length * BONUS_SCALE;
     for (let t = 0; t < 40; t++) {
       const x = rndInt(20, W - 20 - w);
       const y = rndInt(20, H - 20 - h);

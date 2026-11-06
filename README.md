@@ -29,6 +29,7 @@ node --test tests/
 | `js/sim.js` | Game rules and simulation (no DOM). Produces a compact frame per tick. |
 | `js/ai.js` | Computer players. |
 | `js/art.js` | Bonus definitions and their pixel art. |
+| `js/music.js` | Background music: menu loop and the alternating match tracks in `music/`. |
 | `js/render.js` | Layered canvas renderer: static grid, blurred glow layer, incremental trails, effects. |
 | `js/audio.js` | Synthesised sound effects. |
 | `js/main.js` | Menus, HUD, input, local matches. |

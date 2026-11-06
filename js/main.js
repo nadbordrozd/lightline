@@ -1,4 +1,4 @@
-import { TICK_MS, COLORS, DEFAULT_SLOTS, MATCH_WINS, PICKUP_SCALES, TRAIL_STYLES, DEFAULT_LOOK, keyLabel, playerPalette } from './constants.js';
+import { TICK_MS, COLORS, DEFAULT_SLOTS, MATCH_WINS, TRAIL_STYLES, DEFAULT_LOOK, keyLabel, playerPalette } from './constants.js';
 import { Game, MODES, LEVELS } from './sim.js';
 import { Renderer, bonusSprite } from './render.js';
 import { BONUS_TYPES } from './art.js';
@@ -77,12 +77,11 @@ for (const el of $$('.speed-ctl')) {
 }
 syncSpeedControls();
 
-// ------------------------------------------------------------------ look (trail width, pickup size)
+// ------------------------------------------------------------------ look (trail width)
 // Both take effect from the next round, including in the demo behind the menu. Online, the
 // host's choice is sent to everyone with each round.
 const LOOK_OPTIONS = {
   trails: { label: 'Trails', values: TRAIL_STYLES, names: { thin: 'Thin', bold: 'Bold' } },
-  pickups: { label: 'Pickups', values: Object.keys(PICKUP_SCALES), names: { small: 'Small', large: 'Large' } },
 };
 const look = {};
 for (const [k, o] of Object.entries(LOOK_OPTIONS)) {
@@ -552,7 +551,7 @@ function renderHelp() {
     c.width = sp.canvas.width;
     c.height = sp.canvas.height;
     c.getContext('2d').drawImage(sp.canvas, 0, 0);
-    c.style.width = `${sp.w * 1.6}px`;
+    c.style.width = `${sp.w * 2.4}px`;
     icon.appendChild(c);
     li.appendChild(icon);
     li.insertAdjacentHTML('beforeend', `<div><b style="color:hsl(${t.hue} 100% 70%)">${t.name}</b><span>${esc(t.desc)}</span></div>`);

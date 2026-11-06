@@ -36,11 +36,11 @@ function wipe(ctx) {
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
-export function bonusSprite(type, variant = '', S = BONUS_SCALE) {
-  const key = type + variant + S;
+export function bonusSprite(type, variant = '') {
+  const key = type + variant;
   if (bonusSprite.cache.has(key)) return bonusSprite.cache.get(key);
   const art = artFor(type, variant);
-  const k = S / BONUS_SCALE; // halo and highlight shrink with the art.
+  const S = BONUS_SCALE;
   const pad = 5;
   const lw = art[0].length * S;
   const lh = art.length * S;
@@ -53,7 +53,7 @@ export function bonusSprite(type, variant = '', S = BONUS_SCALE) {
   const hue = BONUS_TYPES[type].hue;
   g.fillStyle = `hsla(${hue},100%,50%,0.10)`;
   g.beginPath();
-  g.roundRect(-2.5 * k, -2.5 * k, lw + 5 * k, lh + 5 * k, 3 * k);
+  g.roundRect(-2, -2, lw + 4, lh + 4, 2.5);
   g.fill();
   const cells = (inset, light) => {
     for (let r = 0; r < art.length; r++) {
@@ -66,10 +66,10 @@ export function bonusSprite(type, variant = '', S = BONUS_SCALE) {
     }
   };
   g.shadowColor = `hsl(${hue},100%,60%)`;
-  g.shadowBlur = 5 * k * RES;
+  g.shadowBlur = 4 * RES;
   cells(0, 58);
   g.shadowBlur = 0;
-  cells(0.45 * k, 84);
+  cells(0.22 * S, 84); // white-hot centres
   const sprite = { canvas: c, pad, w: lw + 2 * pad, h: lh + 2 * pad };
   bonusSprite.cache.set(key, sprite);
   return sprite;
@@ -145,11 +145,10 @@ export class Renderer {
     wipe(this.bon);
     this.particles.length = 0;
     this.bonuses.clear();
-    this.bs = info.bs ?? BONUS_SCALE;
     this.tw = TRAIL_WIDTHS[info.trails] ?? TRAIL_WIDTHS.bold;
     for (const [id, type, x, y, v] of info.bonuses) {
       const art = artFor(type, v);
-      const b = { id, type, v, x, y, w: art[0].length * this.bs, h: art.length * this.bs };
+      const b = { id, type, v, x, y, w: art[0].length * BONUS_SCALE, h: art.length * BONUS_SCALE };
       this.bonuses.set(id, b);
       this.drawBonus(b);
     }
@@ -159,7 +158,7 @@ export class Renderer {
   }
 
   drawBonus(b) {
-    const s = bonusSprite(b.type, b.v, this.bs);
+    const s = bonusSprite(b.type, b.v);
     this.bon.drawImage(s.canvas, b.x - s.pad, b.y - s.pad, s.w, s.h);
   }
 
