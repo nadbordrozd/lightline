@@ -87,6 +87,7 @@ export class Renderer {
     this.fx = makeLayer(layers, 'fx', RES);
     this.pal = [];
     this.names = [];
+    this.keyLabels = []; // per player: the keys steering it from this computer, shown during the countdown
     this.heads = [];
     this.phase = 'idle';
     this.lastFrameAt = 0;
@@ -386,7 +387,15 @@ export class Renderer {
         f.font = '600 13px Rajdhani, sans-serif';
         f.textAlign = 'center';
         f.fillStyle = st.hot;
-        f.fillText(this.names[i] ?? '', cx - dx * 18, cy - dy * 18 + (dx ? -10 : 4));
+        const ly = cy - dy * 18 + (dx ? -10 : 4);
+        f.fillText(this.names[i] ?? '', cx - dx * 18, ly);
+        const keys = this.keyLabels[i];
+        if (keys) {
+          // Keys go on the side of the name away from the head.
+          f.font = '700 16px Rajdhani, sans-serif';
+          f.fillStyle = '#fff';
+          f.fillText(keys, cx - dx * 18, ly + (dy < 0 ? 16 : -15));
+        }
       }
     }
   }

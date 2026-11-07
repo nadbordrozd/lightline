@@ -24,9 +24,9 @@ let session = null;
 // ------------------------------------------------------------------ screens & toast
 export function showScreen(name) {
   app.dataset.screen = name;
-  const inMatch = session && !session.demo && (name === 'game' || name === 'pause');
+  const inMatch = session && !session.demo && ['game', 'pause', 'help'].includes(name);
   music.want(inMatch ? 'game' : 'menu');
-  music.duck(name === 'pause');
+  music.duck(inMatch && name !== 'game');
 }
 export function screen() {
   return app.dataset.screen;
@@ -43,6 +43,17 @@ export const colorVars = (ci) => {
   const p = playerPalette(ci);
   return `--h:${p.hue};--s:${p.sat}%;--l:${p.light}%`;
 };
+
+// ------------------------------------------------------------------ who steers with which keys
+// A control is { name, color, keys: [left, right] } for one player steered from this computer.
+const cap = (code, cls = '') => `<kbd class="cap${cls ? ' ' + cls : ''}">${esc(keyLabel(code))}</kbd>`;
+// Compact: dot, name and both keys in a row (the round intro).
+const ctlChip = (c) => `<span class="ctl" style="${colorVars(c.color)}"><i></i><span class="n">${esc(c.name)}</span>${cap(c.keys[0])}${cap(c.keys[1])}</span>`;
+// Large, with captions (the help page and the online lobby).
+export const ctlRow = (c) =>
+  `<div class="ctl-row" style="${colorVars(c.color)}"><i></i><span class="n">${esc(c.name)}</span>` +
+  `<span class="pair">${cap(c.keys[0], 'big')}<small>turn left</small></span>` +
+  `<span class="pair">${cap(c.keys[1], 'big')}<small>turn right</small></span></div>`;
 
 // ------------------------------------------------------------------ line speed
 // The line speed setting, as a fraction of the standard speed (1 = 100%). It applies to new games
@@ -174,8 +185,12 @@ class Hud {
       .join('');
     const lvl = LEVELS[info.level];
     this.round.textContent = `Round ${info.round} · ${lvl.name}` + (info.target ? ` · first to ${info.target}` : '');
+    const ctl = s.controls();
+    const keys = ctl.length
+      ? `<div class="keys-reminder"><div class="kicker">${ctl.length > 1 ? 'Keys' : 'Your keys'}</div><div class="ctls">${ctl.map(ctlChip).join('')}</div></div>`
+      : '';
     this.showBanner(
-      `<div class="kicker">Round ${info.round}</div><div class="title">${esc(lvl.name)}</div><div class="sub">${esc(lvl.desc)}</div>`,
+      `<div class="kicker">Round ${info.round}</div><div class="title">${esc(lvl.name)}</div><div class="sub">${esc(lvl.desc)}</div>${keys}`,
       'intro',
     );
   }
@@ -267,12 +282,27 @@ export class Session {
   isMine() {
     return false;
   }
+  // The players steered from this computer and their keys, read off the key map. Online, that's
+  // only this player's own (or their couch's), never everyone else's.
+  controls() {
+    const by = new Map();
+    for (const [code, { i, d }] of this.keymap) {
+      if (!by.has(i)) by.set(i, { i, keys: [] });
+      by.get(i).keys[d < 0 ? 0 : 1] = code;
+    }
+    return [...by.values()]
+      .sort((a, b) => a.i - b.i)
+      .map((c) => ({ ...c, name: this.players?.[c.i]?.name ?? '', color: this.players?.[c.i]?.color ?? 0 }));
+  }
   nextHint() {
     return '';
   }
   onRound(info) {
     this.roundNo = info.round;
+    this.players = info.players;
     renderer.setPlayers(info.players);
+    renderer.keyLabels = [];
+    for (const c of this.controls()) renderer.keyLabels[c.i] = `${keyLabel(c.keys[0])}   ${keyLabel(c.keys[1])}`;
     renderer.startRound(info);
     hud.startRound(info, this);
   }
@@ -411,7 +441,9 @@ export function openPause() {
   $('#pause-speed').hidden = !session.game; // guests can't change the host's speed
   const box = $('#pause-buttons');
   box.innerHTML = '';
-  session.pauseButtons().forEach(([label, fn], i) => {
+  const buttons = session.pauseButtons();
+  buttons.splice(1, 0, ['How to play', () => openHelp()]);
+  buttons.forEach(([label, fn], i) => {
     const b = document.createElement('button');
     b.className = 'btn' + (i === 0 ? ' btn-primary' : '');
     b.textContent = label;
@@ -427,13 +459,15 @@ export function resumeGame() {
 }
 
 // ------------------------------------------------------------------ local setup
+// Bumped when the default setup changed (to one player against an easy bot), so returning players see it too.
+const SLOTS_KEY = 'slots.v2';
 const KINDS = [['off', 'Off'], ['human', 'Player'], ['easy', 'Easy bot'], ['hard', 'Hard bot']];
 let slots = loadSlots();
 let localMode = MODES[store.get('mode')] ? store.get('mode') : 'shuffle';
 let listening = null; // { slot, k, el } while rebinding a key
 
 function loadSlots() {
-  const saved = store.get('slots', null);
+  const saved = store.get(SLOTS_KEY, null);
   if (!Array.isArray(saved) || saved.length !== DEFAULT_SLOTS.length) return structuredClone(DEFAULT_SLOTS);
   return saved.map((s, i) => ({
     color: DEFAULT_SLOTS[i].color,
@@ -453,10 +487,10 @@ function renderLocalSetup() {
   slots.forEach((s, i) => {
     const c = COLORS[s.color];
     const card = document.createElement('div');
-    card.className = 'pcard' + (s.kind !== 'off' ? ' on' : '');
+    card.className = 'pcard' + (s.kind !== 'off' ? ' on' : '') + (s.kind === 'human' ? ' human' : '');
     card.style.cssText = colorVars(s.color);
     const keys = s.kind === 'human'
-      ? `<button class="key" data-k="0" title="Turn left">${esc(keyLabel(s.keys[0]))}</button><span>left · right</span><button class="key" data-k="1" title="Turn right">${esc(keyLabel(s.keys[1]))}</button>`
+      ? [0, 1].map((k) => `<div class="pair"><button class="key cap big" data-k="${k}" title="Click to change">${esc(keyLabel(s.keys[k]))}</button><small>turn ${k ? 'right' : 'left'}</small></div>`).join('')
       : s.kind === 'off'
         ? '<span>not playing</span>'
         : '<span class="bot-label">computer controlled</span>';
@@ -493,6 +527,13 @@ function renderLocalSetup() {
   start.textContent = n < 2 ? 'Start' : `Start · ${n} players`;
   const st = $('#local-status');
   st.textContent = n < 2 ? 'Pick at least two players (bots count).' : humans === 0 ? 'Bots only: sit back and watch.' : '';
+  // Nudge solo players towards multiplayer, which is what the game is really for.
+  const call = $('#local-callout');
+  call.classList.toggle('solo', humans <= 1);
+  call.innerHTML = humans <= 1
+    ? '<b>Lightline is best with friends.</b> Switch another colour to <b>Player</b> to share this keyboard (up to 8 can play), or <button class="link" data-online>play online</button>.'
+    : `<b>${humans} players on one keyboard.</b> Check your keys below: they're shown again before every round.`;
+  $('[data-online]', call)?.addEventListener('click', () => openOnline());
 }
 
 export function renderModes(el, selected, onPick, readonly = false) {
@@ -509,7 +550,7 @@ export function renderModes(el, selected, onPick, readonly = false) {
 }
 
 function saveSetup() {
-  store.set('slots', slots);
+  store.set(SLOTS_KEY, slots);
   store.set('mode', localMode);
 }
 
@@ -538,6 +579,35 @@ function startLocal(useSlots = slots, mode = localMode) {
 }
 
 // ------------------------------------------------------------------ help
+// Opened from the main menu it's just the rules. Opened during a match (the ? button or the pause
+// menu) it pauses a local game and starts with who steers with which keys.
+let helpFrom = 'menu';
+export function openHelp() {
+  const from = screen();
+  const s = session && !session.demo && (from === 'game' || from === 'pause') ? session : null;
+  helpFrom = s ? from : 'menu';
+  if (s instanceof LocalSession) s.paused = true;
+  const box = $('#help-controls');
+  box.hidden = !s;
+  if (s) {
+    const ctl = s.controls();
+    $('#help-controls-title').textContent = ctl.length > 1 ? 'Who steers with which keys' : 'Your keys';
+    $('#help-controls-list').innerHTML = ctl.length
+      ? ctl.map(ctlRow).join('')
+      : '<p class="hint">Nobody on this computer is steering in this match.</p>';
+    $('#help-controls-note').textContent = s instanceof LocalSession
+      ? 'The game is paused until you go back.'
+      : 'Online games can’t be paused: the match keeps running while you read this.';
+  }
+  showScreen('help');
+  $('#screen-help').scrollTop = 0;
+}
+function closeHelp() {
+  if (helpFrom === 'game') resumeGame();
+  else if (helpFrom === 'pause') openPause();
+  else showScreen('menu');
+}
+
 function renderHelp() {
   $('#help-levels').innerHTML = MODES.shuffle.levels.map((l) => `<li><b>${LEVELS[l].name.toUpperCase()}</b><span>${esc(LEVELS[l].desc)}</span></li>`).join('');
   const list = $('#help-bonuses');
@@ -595,7 +665,9 @@ window.addEventListener('keydown', (e) => {
     if (GAME_KEYS.has(e.code)) e.preventDefault();
   } else if (scr === 'pause' && e.code === 'Escape') {
     session?.pauseButtons()[0]?.[1]();
-  } else if (e.code === 'Escape' && ['local', 'help', 'about', 'online'].includes(scr)) {
+  } else if (scr === 'help' && e.code === 'Escape') {
+    closeHelp();
+  } else if (e.code === 'Escape' && ['local', 'about', 'online'].includes(scr)) {
     showScreen('menu');
   }
 });
@@ -610,7 +682,7 @@ $$('[data-go]').forEach((b) => {
     sfx.unlock();
     const go = b.dataset.go;
     if (go === 'local') openLocalSetup();
-    else if (go === 'help') showScreen('help');
+    else if (go === 'help') openHelp();
     else if (go === 'about') showScreen('about');
     else if (go === 'online') openOnline();
     else showScreen(go);
@@ -618,6 +690,8 @@ $$('[data-go]').forEach((b) => {
 });
 $('#btn-local-start').onclick = () => startLocal();
 $('#btn-pause').onclick = () => openPause();
+$('#btn-help').onclick = () => openHelp();
+$('#help-back').onclick = () => closeHelp();
 $('#banner').addEventListener('click', (e) => {
   if (e.target.closest('[data-action="next"]')) session?.next();
 });

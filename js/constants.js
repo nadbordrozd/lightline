@@ -46,12 +46,13 @@ export function playerPalette(colorIndex) {
   };
 }
 
-// Local hot-seat slots. kind: 'off' | 'human' | 'easy' | 'hard'.
+// Local hot-seat slots. kind: 'off' | 'human' | 'easy' | 'hard'. A first game is one player on the
+// arrow keys against an easy bot.
 export const DEFAULT_SLOTS = [
-  { color: 0, kind: 'human', keys: ['KeyA', 'KeyS'] },
-  { color: 1, kind: 'human', keys: ['ArrowLeft', 'ArrowRight'] },
+  { color: 0, kind: 'human', keys: ['ArrowLeft', 'ArrowRight'] },
+  { color: 1, kind: 'easy', keys: ['KeyA', 'KeyS'] },
   { color: 2, kind: 'off', keys: ['KeyH', 'KeyJ'] },
-  { color: 3, kind: 'easy', keys: ['KeyV', 'KeyB'] },
+  { color: 3, kind: 'off', keys: ['KeyV', 'KeyB'] },
   { color: 4, kind: 'off', keys: ['KeyK', 'KeyL'] },
   { color: 5, kind: 'off', keys: ['Numpad2', 'Numpad3'] },
   { color: 6, kind: 'off', keys: ['KeyZ', 'KeyX'] },

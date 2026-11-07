@@ -372,3 +372,60 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 229, 25
 .winner-buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .winner-buttons .btn { flex: 1 1 130px; }
 @media (max-width: 760px) { .screen { padding-top: 60px; } }
+
+/* ---------------------------------------------------------------- keys & multiplayer hints */
+.cap {
+  --kc: var(--c, var(--accent));
+  display: inline-grid; place-items: center; min-width: 30px; padding: 2px 8px; font-size: 16px; line-height: 1.3; color: #fff;
+  border: 1px solid color-mix(in srgb, var(--kc) 70%, transparent); background: color-mix(in srgb, var(--kc) 16%, rgba(0, 0, 0, 0.5));
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.6), 0 0 12px color-mix(in srgb, var(--kc) 30%, transparent);
+}
+.cap.big { min-width: 58px; padding: 6px 12px; font-size: 24px; border-radius: 10px; }
+.pair { display: inline-flex; flex-direction: column; align-items: center; gap: 5px; }
+.pair small { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+/* setup cards: a human's keys are the thing to remember */
+.pcard.human .pkeys { gap: 22px; min-height: 76px; padding: 6px 0 2px; }
+.pcard .key.cap { cursor: pointer; font-family: var(--font-body); font-weight: 700; color: #fff; --kc: var(--c); }
+.pcard .key.cap:hover { box-shadow: 0 3px 0 rgba(0, 0, 0, 0.6), 0 0 20px var(--c); }
+.pcard .key.cap.listening { font-size: 15px; color: var(--c); }
+
+.callout {
+  border-radius: var(--radius); padding: 11px 14px; margin-bottom: 14px; line-height: 1.4;
+  border: 1px solid var(--line-strong); background: rgba(255, 255, 255, 0.03); color: var(--muted);
+}
+.callout b { color: var(--text); }
+.callout.solo { border-color: color-mix(in srgb, var(--accent-2) 55%, transparent); background: color-mix(in srgb, var(--accent-2) 8%, transparent); }
+.callout.solo b:first-child { color: #ffb6f9; }
+.link { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; font-weight: 700; }
+.menu-note { margin: 22px 0 0; color: var(--muted); font-size: 16px; letter-spacing: 0.04em; }
+.menu-note b { color: #ffb6f9; text-shadow: 0 0 12px rgba(255, 61, 242, 0.5); }
+
+/* round intro: who steers with what */
+.keys-reminder { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.keys-reminder .kicker { margin-bottom: 8px; }
+.ctls { display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center; }
+.ctl {
+  --c: hsl(var(--h) var(--s) var(--l));
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 8%, transparent);
+}
+.ctl i, .ctl-row i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); flex: none; }
+.ctl .n { font-weight: 700; margin-right: 2px; }
+
+/* help page and lobby: big keys with captions */
+.help-controls {
+  margin: -4px 0 22px; padding: 14px 16px 6px; border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); background: rgba(0, 229, 255, 0.05);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.1);
+}
+.help-controls[hidden] { display: none; }
+.help-controls h3 { color: var(--accent); }
+.ctl-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.ctl-row {
+  --c: hsl(var(--h) var(--s) var(--l));
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 8%, transparent);
+}
+.ctl-row .n { font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.locals-keys { color: var(--text); gap: 8px; }

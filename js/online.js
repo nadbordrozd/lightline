@@ -1,7 +1,7 @@
 // Online play. One browser hosts: it runs the simulation and streams frames to guests,
 // who only send their key presses. See net.js for the transport.
 import {
-  $, store, esc, getSpeed, getLook, showScreen, screen, toast, colorVars, renderModes, setSession, Session, resumeGame, toMenu, startDemo,
+  $, store, esc, ctlRow, getSpeed, getLook, showScreen, screen, toast, colorVars, renderModes, setSession, Session, resumeGame, toMenu, startDemo,
 } from './main.js';
 import { Game, MODES } from './sim.js';
 import { MAX_PLAYERS, ONLINE_KEYS, ONLINE_COLOR_ORDER, keyLabel } from './constants.js';
@@ -509,7 +509,10 @@ function renderLobby(st, r) {
   $('#locals-n').textContent = n;
   $('#locals-minus').disabled = n <= 1;
   $('#locals-plus').disabled = n >= MAX_LOCALS || st.roster.length >= MAX_PLAYERS;
-  $('#locals-keys').innerHTML = Array.from({ length: n }, (_, li) => `<div>Player ${li + 1}: <kbd>${esc(keyLabel(ONLINE_KEYS[li][0]))}</kbd> <kbd>${esc(keyLabel(ONLINE_KEYS[li][1]))}</kbd></div>`).join('');
+  $('#locals-keys').innerHTML = Array.from({ length: n }, (_, li) => {
+    const p = st.roster.find((x) => x.owner === r.me && x.li === li);
+    return ctlRow({ name: p?.name ?? `Player ${li + 1}`, color: p?.color ?? 0, keys: ONLINE_KEYS[li] });
+  }).join('');
   renderModes($('#lobby-modes'), st.mode, (m) => r.setMode?.(m), !r.isHost);
   const status = $('#lobby-status');
   if (r.isHost) {

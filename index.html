@@ -23,6 +23,9 @@
       <div class="hud-right">
         <button class="icon-btn btn-music" title="Music on/off" aria-label="Music on/off"></button>
         <button class="icon-btn btn-sound" title="Sound effects on/off" aria-label="Sound effects on/off"></button>
+        <button id="btn-help" class="icon-btn" title="How to play" aria-label="How to play">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 9.2a3 3 0 1 1 4.3 2.7c-.8.4-1.3 1.1-1.3 2v.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="18" r="1.4" fill="currentColor"/></svg>
+        </button>
         <button id="btn-pause" class="icon-btn" title="Menu (Esc)" aria-label="Menu">
           <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor"/></svg>
         </button>
@@ -53,6 +56,7 @@
           <button class="btn btn-ghost" data-go="help">How to play</button>
           <button class="btn btn-ghost" data-go="about">About</button>
         </nav>
+        <p class="menu-note"><b>Best with friends:</b> up to 8 players on one keyboard, or online.</p>
       </div>
     </section>
 
@@ -66,6 +70,7 @@
         </div>
         <div class="setup-cols">
           <div>
+            <div id="local-callout" class="callout"></div>
             <h3>Players</h3>
             <div id="player-grid" class="player-grid"></div>
           </div>
@@ -162,8 +167,13 @@
     <section id="screen-help" class="screen">
       <div class="panel panel-wide">
         <div class="panel-head">
-          <button class="back" data-go="menu" aria-label="Back">‹</button>
+          <button id="help-back" class="back" aria-label="Back">‹</button>
           <h2>How to play</h2>
+        </div>
+        <div id="help-controls" class="help-controls" hidden>
+          <h3 id="help-controls-title">Your keys</h3>
+          <div id="help-controls-list" class="ctl-list"></div>
+          <p id="help-controls-note" class="hint"></p>
         </div>
         <div class="help-cols">
           <div>
@@ -174,7 +184,8 @@
               <li>Hit a wall, the edge or any trail (yours too) and you're out.</li>
               <li>The last one alive wins the round and scores a point. The first to <b>10 points</b> wins the match.</li>
               <li>During the 3-2-1 countdown you can already turn to pick your starting direction.</li>
-              <li><kbd>Space</kbd> starts the next round, <kbd>Esc</kbd> opens the menu.</li>
+              <li><kbd>Space</kbd> starts the next round, <kbd>Esc</kbd> opens the menu and the <b>?</b> button brings up this page.</li>
+              <li>It's best with friends: up to 8 players, sharing one keyboard or online.</li>
             </ul>
             <h3>Arenas in Shuffle mode</h3>
             <ul id="help-levels" class="levels"></ul>
