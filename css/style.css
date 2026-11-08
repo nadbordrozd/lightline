@@ -429,3 +429,15 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 229, 25
 }
 .ctl-row .n { font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .locals-keys { color: var(--text); gap: 8px; }
+
+/* ---------------------------------------------------------------- catch-up mode */
+.catchup-ctl { margin: 14px 0 20px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); text-align: left; }
+.catchup-ctl[hidden] { display: none; }
+.catchup-ctl h3 { margin-top: 0; }
+.cu-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.cu-row span { width: 64px; flex: none; color: var(--muted); font-weight: 600; }
+.cu-row input { flex: 1; min-width: 0; accent-color: var(--accent); height: 26px; cursor: pointer; }
+.cu-row b { min-width: 56px; text-align: right; font-family: var(--font-display); color: var(--accent); }
+.cu-foot { display: flex; align-items: center; gap: 10px; }
+.cu-foot .hint { margin: 0; font-size: 14px; flex: 1; }
+.chip .spd { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; }

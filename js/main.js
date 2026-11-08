@@ -1,4 +1,4 @@
-import { TICK_MS, COLORS, DEFAULT_SLOTS, MATCH_WINS, TRAIL_STYLES, DEFAULT_LOOK, keyLabel, playerPalette } from './constants.js';
+import { TICK_MS, COLORS, DEFAULT_SLOTS, MATCH_WINS, TRAIL_STYLES, DEFAULT_LOOK, DEFAULT_CATCHUP, keyLabel, playerPalette } from './constants.js';
 import { Game, MODES, LEVELS } from './sim.js';
 import { Renderer, bonusSprite } from './render.js';
 import { BONUS_TYPES } from './art.js';
@@ -87,6 +87,51 @@ for (const el of $$('.speed-ctl')) {
   $('.speed-reset', el).onclick = () => setSpeed(SPEED_DEFAULT);
 }
 syncSpeedControls();
+
+// ------------------------------------------------------------------ catch-up speeds
+// The slowest and fastest speeds in Catch-up mode. Like the line speed, they apply to new games
+// and, from the pause menu, from the next round of the game in progress. Online, the host's count.
+const CATCHUP_MIN = 0.25;
+const CATCHUP_MAX = 3;
+const clampCu = (v, d) => Math.min(CATCHUP_MAX, Math.max(CATCHUP_MIN, Math.round((+v || d) * 20) / 20));
+const savedCu = store.get('catchup', DEFAULT_CATCHUP);
+const catchup = { lo: clampCu(savedCu?.lo, DEFAULT_CATCHUP.lo), hi: clampCu(savedCu?.hi, DEFAULT_CATCHUP.hi) };
+export const getCatchup = () => ({ ...catchup });
+function setCatchup(k, v) {
+  catchup[k] = clampCu(v, DEFAULT_CATCHUP[k]);
+  store.set('catchup', catchup);
+  if (session?.game && !session.demo) session.game.catchup = getCatchup();
+  syncCatchupControls();
+}
+function syncCatchupControls() {
+  for (const el of $$('.catchup-ctl')) {
+    for (const k of ['lo', 'hi']) {
+      const input = $(`input[data-cu="${k}"]`, el);
+      if (+input.value !== catchup[k]) input.value = catchup[k];
+      $(`[data-cu-val="${k}"]`, el).textContent = Math.round(catchup[k] * 100) + '%';
+    }
+    $('.speed-reset', el).disabled = catchup.lo === DEFAULT_CATCHUP.lo && catchup.hi === DEFAULT_CATCHUP.hi;
+  }
+}
+for (const el of $$('.catchup-ctl')) {
+  const row = (k, label) => `
+    <div class="cu-row"><span>${label}</span>
+      <input type="range" data-cu="${k}" min="${CATCHUP_MIN}" max="${CATCHUP_MAX}" step="0.05" aria-label="Speed with ${label.toLowerCase()}">
+      <b data-cu-val="${k}"></b></div>`;
+  el.innerHTML = `
+    <h3>Catch-up speeds</h3>
+    ${row('lo', 'No wins')}
+    ${row('hi', `${MATCH_WINS - 1} wins`)}
+    <div class="cu-foot"><span class="hint">Of the line speed. Everyone in between gets an even step per win.</span>
+      <button class="btn btn-small speed-reset" title="Back to ${DEFAULT_CATCHUP.lo * 100}% and ${DEFAULT_CATCHUP.hi * 100}%">Reset</button></div>`;
+  el.addEventListener('input', (e) => { if (e.target.dataset.cu) setCatchup(e.target.dataset.cu, e.target.value); });
+  $('.speed-reset', el).onclick = () => { setCatchup('lo', DEFAULT_CATCHUP.lo); setCatchup('hi', DEFAULT_CATCHUP.hi); };
+}
+syncCatchupControls();
+// Catch-up settings only show while that mode is picked.
+export function showCatchupControls(el, mode) {
+  el.hidden = !MODES[mode]?.catchup;
+}
 
 // ------------------------------------------------------------------ look (trail width)
 // Both take effect from the next round, including in the demo behind the menu. Online, the
@@ -181,7 +226,7 @@ class Hud {
     }
     this.players = info.players;
     this.board.innerHTML = info.players
-      .map((p, i) => `<div class="chip${s.isMine(p) ? ' mine' : ''}" data-i="${i}" style="${colorVars(p.color)}"><i></i><span class="n">${esc(p.name)}</span><b>${p.wins}</b></div>`)
+      .map((p, i) => `<div class="chip${s.isMine(p) ? ' mine' : ''}" data-i="${i}" style="${colorVars(p.color)}"><i></i><span class="n">${esc(p.name)}</span>${info.catchup ? `<small class="spd" title="Speed this round">${Math.round((p.mul ?? 1) * 100)}%</small>` : ''}<b>${p.wins}</b></div>`)
       .join('');
     const lvl = LEVELS[info.level];
     this.round.textContent = `Round ${info.round} · ${lvl.name}` + (info.target ? ` · first to ${info.target}` : '');
@@ -340,7 +385,7 @@ class LocalSession extends Session {
     this.slots = slots;
     this.mode = mode;
     const roster = slots.map((s, i) => ({ id: 's' + i, name: COLORS[s.color].name, color: s.color, kind: s.kind }));
-    this.game = new Game(roster, mode, { look, ...(demo ? { speedMul: SPEED_DEFAULT, target: 0 } : { speedMul }) });
+    this.game = new Game(roster, mode, { look, catchup, ...(demo ? { speedMul: SPEED_DEFAULT, target: 0 } : { speedMul }) });
     slots.forEach((s, i) => {
       if (s.kind !== 'human') return;
       this.keymap.set(s.keys[0], { i, d: -1 });
@@ -439,6 +484,7 @@ export function openPause() {
   if (session instanceof LocalSession) session.paused = true;
   $('#pause-title').textContent = session instanceof LocalSession ? 'Paused' : 'Menu';
   $('#pause-speed').hidden = !session.game; // guests can't change the host's speed
+  if (session.game) showCatchupControls($('#pause-speed .catchup-ctl'), session.game.mode);
   const box = $('#pause-buttons');
   box.innerHTML = '';
   const buttons = session.pauseButtons();
@@ -520,6 +566,7 @@ function renderLocalSetup() {
     saveSetup();
     renderLocalSetup();
   });
+  showCatchupControls($('#screen-local .catchup-ctl'), localMode);
   const n = slots.filter((s) => s.kind !== 'off').length;
   const humans = slots.filter((s) => s.kind === 'human').length;
   const start = $('#btn-local-start');
@@ -542,7 +589,7 @@ export function renderModes(el, selected, onPick, readonly = false) {
     const b = document.createElement('button');
     b.className = 'mode' + (key === selected ? ' sel' : '');
     b.disabled = readonly;
-    const tags = key === 'shuffle' ? `<div class="tags">${m.levels.map((l) => `<span>${LEVELS[l].name}</span>`).join('')}</div>` : '';
+    const tags = m.levels.length > 1 ? `<div class="tags">${m.levels.map((l) => `<span>${LEVELS[l].name}</span>`).join('')}</div>` : '';
     b.innerHTML = `<div class="mname">${m.name.toUpperCase()}</div><div class="mdesc">${esc(m.desc)}</div>${tags}`;
     if (!readonly) b.onclick = () => onPick(key);
     el.appendChild(b);

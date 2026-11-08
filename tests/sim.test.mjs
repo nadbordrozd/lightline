@@ -143,3 +143,20 @@ test('the first player to the target number of wins takes the match', () => {
   assert.equal(new Game(bots(2)).target, 10);
   assert.equal(new Game(bots(2), 'classic', { target: 0 }).champion, -1);
 });
+
+test('catch-up mode speeds players up evenly with their wins', () => {
+  const g = new Game(bots(3, 'easy'), 'catchup', { catchup: { lo: 0.5, hi: 2 } });
+  [g.players[0].wins, g.players[1].wins, g.players[2].wins] = [0, 3, 9];
+  g.startRound();
+  assert.deepEqual(g.players.map((p) => p.mul), [0.5, 1, 2]);
+  assert.equal(g.cellsPerTick(g.players[2]), 4 * g.cellsPerTick(g.players[0]));
+  // Other modes leave everyone at the same speed.
+  const s = new Game(bots(2, 'easy'), 'shuffle');
+  s.players[0].wins = 9;
+  s.startRound();
+  assert.deepEqual(s.players.map((p) => p.mul), [1, 1]);
+  // A catch-up match still plays out to a champion.
+  const m = new Game(bots(3, 'hard'), 'catchup', { target: 3 });
+  for (let r = 0; r < 40 && m.champion < 0; r++) playRound(m);
+  assert.ok(m.champion >= 0);
+});

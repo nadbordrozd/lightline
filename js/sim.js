@@ -1,7 +1,7 @@
 // The game simulation. Pure logic, no DOM: the same code runs locally and on an online host.
 // Each tick() returns a compact "frame" describing what changed; renderers (local or remote) draw from frames only.
 import {
-  W, H, TICK_HZ, BASE_SPEED, CELLS_PER_LEVEL, MAX_SPEED, GOD_TICKS, SWAP_GRACE_TICKS, COUNTDOWN_TICKS, BONUS_SCALE, MATCH_WINS, DEFAULT_LOOK,
+  W, H, TICK_HZ, BASE_SPEED, CELLS_PER_LEVEL, MAX_SPEED, GOD_TICKS, SWAP_GRACE_TICKS, COUNTDOWN_TICKS, BONUS_SCALE, MATCH_WINS, DEFAULT_LOOK, DEFAULT_CATCHUP,
 } from './constants.js';
 import { artFor } from './art.js';
 import { rot, freeRay, cpuThink, cpuChooseStart } from './ai.js';
@@ -19,6 +19,12 @@ export const MODES = {
   classic: { name: 'Classic', desc: 'No bonuses. Just you, your line and everyone else’s.', levels: ['classic'] },
   enhanced: { name: 'Enhanced', desc: 'Bonuses scattered around the arena.', levels: ['enhanced'] },
   shuffle: { name: 'Shuffle', desc: 'A different arena every round.', levels: ['enhanced', 'speedy', 'switcheroo', 'classic', 'wally', 'turbo'] },
+  catchup: {
+    name: 'Catch-up',
+    desc: 'Shuffle arenas, but the more rounds you’ve won, the faster you go. Evens out mixed ages and skills.',
+    levels: ['enhanced', 'speedy', 'switcheroo', 'classic', 'wally', 'turbo'],
+    catchup: true,
+  },
 };
 
 const rndInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -27,9 +33,11 @@ const isCpu = (p) => p.kind === 'easy' || p.kind === 'hard';
 export class Game {
   // roster: [{ id, name, color, kind: 'human' | 'easy' | 'hard', owner? }]
   // speedMul is the line speed setting: it scales how far every line moves per tick (1 = 100%).
-  constructor(roster, mode = 'shuffle', { speedMul = 1, target = MATCH_WINS, look = DEFAULT_LOOK } = {}) {
+  // catchup ({ lo, hi }) sets the per-player speeds in Catch-up mode; it's read at the start of each round.
+  constructor(roster, mode = 'shuffle', { speedMul = 1, target = MATCH_WINS, look = DEFAULT_LOOK, catchup = DEFAULT_CATCHUP } = {}) {
     this.mode = MODES[mode] ? mode : 'shuffle';
     this.speedMul = speedMul;
+    this.catchup = { ...catchup };
     this.target = target; // wins needed to take the match (0 = endless)
     this.champion = -1; // index of the match winner once someone reaches the target
     this.look = { ...look }; // trail style; read at the start of each round
@@ -66,6 +74,7 @@ export class Game {
     this.level = key;
     this.lastLevel = key;
     this.trails = this.look.trails ?? DEFAULT_LOOK.trails;
+    for (const p of this.players) p.mul = this.speedFor(p.wins);
     this.round++;
     this.grid.fill(0);
     this.bonuses.clear();
@@ -100,19 +109,30 @@ export class Game {
       mode: this.mode,
       target: this.target,
       trails: this.trails,
-      players: this.players.map((p) => ({ id: p.id, name: p.name, color: p.color, kind: p.kind, owner: p.owner, li: p.li, wins: p.wins })),
+      players: this.players.map((p) => ({ id: p.id, name: p.name, color: p.color, kind: p.kind, owner: p.owner, li: p.li, wins: p.wins, mul: p.mul })),
+      catchup: !!MODES[this.mode].catchup,
       bonuses: [...this.bonuses.values()].map((b) => [b.id, b.type, b.x, b.y, b.v]),
       h: this.heads(),
     };
   }
 
-  // How many cells a player moves per tick (fractional; the remainder carries over to the next tick).
-  cellsPerTick(p) {
-    return p.speed * CELLS_PER_LEVEL * this.speedMul;
+  // A player's own speed multiplier for the coming round: 1 except in Catch-up mode, where it runs
+  // evenly from catchup.lo with no wins to catchup.hi with one win short of the match.
+  speedFor(wins) {
+    if (!MODES[this.mode].catchup) return 1;
+    const top = (this.target > 0 ? this.target : MATCH_WINS) - 1;
+    const { lo, hi } = this.catchup;
+    return lo + ((hi - lo) * Math.min(wins, top)) / Math.max(1, top);
   }
 
+  // How many cells a player moves per tick (fractional; the remainder carries over to the next tick).
+  cellsPerTick(p) {
+    return p.speed * CELLS_PER_LEVEL * this.speedMul * (p.mul ?? 1);
+  }
+
+  // Head positions, directions and how far each moves per tick (the renderer extrapolates with it).
   heads() {
-    return this.players.map((p) => [p.x, p.y, p.dx, p.dy, p.speed, p.alive ? 1 : 0, p.god]);
+    return this.players.map((p) => [p.x, p.y, p.dx, p.dy, Math.round(this.cellsPerTick(p) * 100) / 100, p.alive ? 1 : 0, p.god]);
   }
 
   placeBonus(type, spawns) {

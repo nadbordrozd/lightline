@@ -16,6 +16,9 @@ export const TRAIL_STYLES = ['thin', 'bold'];
 export const DEFAULT_LOOK = { trails: 'bold' };
 export const MAX_PLAYERS = 8;
 export const MATCH_WINS = 10; // the first player to win this many rounds wins the match
+// Catch-up mode: each player's speed goes from `lo` (no wins yet) to `hi` (one win short of the
+// match) in even steps, as a multiple of the line speed setting.
+export const DEFAULT_CATCHUP = { lo: 0.5, hi: 2 };
 
 export const COLORS = [
   { name: 'Red', hue: 355 },
