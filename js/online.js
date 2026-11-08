@@ -1,7 +1,7 @@
 // Online play. One browser hosts: it runs the simulation and streams frames to guests,
 // who only send their key presses. See net.js for the transport.
 import {
-  $, store, esc, ctlRow, getSpeed, getLook, getCatchup, showCatchupControls, showScreen, screen, toast, colorVars, renderModes, setSession, Session, resumeGame, toMenu, startDemo,
+  $, store, esc, ctlRow, getSpeed, getLook, getCatchup, showScreen, screen, toast, colorVars, renderModes, setSession, Session, resumeGame, toMenu, startDemo,
 } from './main.js';
 import { Game, MODES } from './sim.js';
 import { MAX_PLAYERS, ONLINE_KEYS, ONLINE_COLOR_ORDER, keyLabel } from './constants.js';
@@ -514,7 +514,6 @@ function renderLobby(st, r) {
     return ctlRow({ name: p?.name ?? `Player ${li + 1}`, color: p?.color ?? 0, keys: ONLINE_KEYS[li] });
   }).join('');
   renderModes($('#lobby-modes'), st.mode, (m) => r.setMode?.(m), !r.isHost);
-  showCatchupControls($('#screen-lobby .catchup-ctl'), st.mode);
   const status = $('#lobby-status');
   if (r.isHost) {
     $('#btn-lobby-start').disabled = st.roster.length < 2;

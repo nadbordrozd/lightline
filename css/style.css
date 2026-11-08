@@ -431,9 +431,13 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 229, 25
 .locals-keys { color: var(--text); gap: 8px; }
 
 /* ---------------------------------------------------------------- catch-up mode */
-.catchup-ctl { margin: 14px 0 20px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); text-align: left; }
-.catchup-ctl[hidden] { display: none; }
-.catchup-ctl h3 { margin-top: 0; }
+.catchup-ctl { text-align: left; }
+.catchup-ctl .seg { --c: var(--accent); flex: 1; max-width: 240px; grid-template-columns: repeat(2, 1fr); }
+.catchup-ctl .seg button { padding: 6px 2px; font-size: 14px; }
+.catchup-ctl .look-row > span { width: 64px; flex: none; color: var(--muted); font-weight: 600; }
+.cu-what { font-size: 14px; margin: 6px 0 8px; }
+.cu-body[hidden] { display: none; }
+.look-ctl + h3 { margin-top: 18px; }
 .cu-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
 .cu-row span { width: 64px; flex: none; color: var(--muted); font-weight: 600; }
 .cu-row input { flex: 1; min-width: 0; accent-color: var(--accent); height: 26px; cursor: pointer; }

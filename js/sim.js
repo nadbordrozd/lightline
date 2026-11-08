@@ -19,12 +19,6 @@ export const MODES = {
   classic: { name: 'Classic', desc: 'No bonuses. Just you, your line and everyone else’s.', levels: ['classic'] },
   enhanced: { name: 'Enhanced', desc: 'Bonuses scattered around the arena.', levels: ['enhanced'] },
   shuffle: { name: 'Shuffle', desc: 'A different arena every round.', levels: ['enhanced', 'speedy', 'switcheroo', 'classic', 'wally', 'turbo'] },
-  catchup: {
-    name: 'Catch-up',
-    desc: 'Shuffle arenas, but the more rounds you’ve won, the faster you go. Evens out mixed ages and skills.',
-    levels: ['enhanced', 'speedy', 'switcheroo', 'classic', 'wally', 'turbo'],
-    catchup: true,
-  },
 };
 
 const rndInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -33,7 +27,7 @@ const isCpu = (p) => p.kind === 'easy' || p.kind === 'hard';
 export class Game {
   // roster: [{ id, name, color, kind: 'human' | 'easy' | 'hard', owner? }]
   // speedMul is the line speed setting: it scales how far every line moves per tick (1 = 100%).
-  // catchup ({ lo, hi }) sets the per-player speeds in Catch-up mode; it's read at the start of each round.
+  // catchup ({ on, lo, hi }) is the Catch-up setting for per-player speeds; it's read at the start of each round.
   constructor(roster, mode = 'shuffle', { speedMul = 1, target = MATCH_WINS, look = DEFAULT_LOOK, catchup = DEFAULT_CATCHUP } = {}) {
     this.mode = MODES[mode] ? mode : 'shuffle';
     this.speedMul = speedMul;
@@ -110,16 +104,16 @@ export class Game {
       target: this.target,
       trails: this.trails,
       players: this.players.map((p) => ({ id: p.id, name: p.name, color: p.color, kind: p.kind, owner: p.owner, li: p.li, wins: p.wins, mul: p.mul })),
-      catchup: !!MODES[this.mode].catchup,
+      catchup: !!this.catchup.on,
       bonuses: [...this.bonuses.values()].map((b) => [b.id, b.type, b.x, b.y, b.v]),
       h: this.heads(),
     };
   }
 
-  // A player's own speed multiplier for the coming round: 1 except in Catch-up mode, where it runs
+  // A player's own speed multiplier for the coming round: 1 unless Catch-up is on, when it runs
   // evenly from catchup.lo with no wins to catchup.hi with one win short of the match.
   speedFor(wins) {
-    if (!MODES[this.mode].catchup) return 1;
+    if (!this.catchup.on) return 1;
     const top = (this.target > 0 ? this.target : MATCH_WINS) - 1;
     const { lo, hi } = this.catchup;
     return lo + ((hi - lo) * Math.min(wins, top)) / Math.max(1, top);
